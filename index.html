@@ -1,1 +1,1852 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>TuitionDesk</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: one-column phone app. Header, one task per tab, fixed bottom tab bar, bottom sheet for WhatsApp queues. Chalkboard green on cool paper neutrals. */
+:root{
+  --bg:#F2F6F4; --surface:#FFFFFF; --fg:#14201B; --muted:#5A6A63; --line:#DCE5E0;
+  --accent:#0E6B52; --accent-ink:#FFFFFF; --accent-soft:#DDF0E8; --bar:#B5D8CA;
+  --warn:#9A5A07; --warn-soft:#FBEBCB; --bad:#B42318; --bad-soft:#FCE3E0; --bad-ink:#FFFFFF;
+  --scrim:rgba(10,20,16,.45);
+  --font-display:'Bricolage Grotesque',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --font-body:'Figtree',system-ui,-apple-system,'Segoe UI',sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0E1512; --surface:#16201C; --fg:#E6EFEA; --muted:#93A59C; --line:#27352F;
+    --accent:#4CC79F; --accent-ink:#06241A; --accent-soft:#17352A; --bar:#2B5446;
+    --warn:#F2B25C; --warn-soft:#3A2B12; --bad:#FF8A7A; --bad-soft:#3D1C18; --bad-ink:#3D0F0A;
+    --scrim:rgba(0,0,0,.6); color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0E1512; --surface:#16201C; --fg:#E6EFEA; --muted:#93A59C; --line:#27352F;
+  --accent:#4CC79F; --accent-ink:#06241A; --accent-soft:#17352A; --bar:#2B5446;
+  --warn:#F2B25C; --warn-soft:#3A2B12; --bad:#FF8A7A; --bad-soft:#3D1C18; --bad-ink:#3D0F0A;
+  --scrim:rgba(0,0,0,.6); color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{
+  background:var(--bg); color:var(--fg); font-family:var(--font-body); font-size:15px; line-height:1.45;
+  padding-block:0 calc(84px + env(safe-area-inset-bottom,0px));
+  padding-left:max(16px,env(safe-area-inset-left,0px)); padding-right:max(16px,env(safe-area-inset-right,0px));
+  font-variant-numeric:tabular-nums;
+}
+.wrap{max-width:560px;margin:0 auto}
+button,select{font-family:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+h1,h2{font-family:var(--font-display);margin:0;text-wrap:balance}
+h1{font-size:26px;line-height:1.15;font-weight:700}
+h2{font-size:17px;font-weight:600}
+.topbar{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:18px 0 14px}
+.brand{font-family:var(--font-display);font-weight:700;font-size:20px;letter-spacing:-.01em}
+.brand small{display:block;font-family:var(--font-body);font-weight:500;font-size:12px;color:var(--muted);letter-spacing:0}
+.today{font-size:13px;color:var(--muted);text-align:right}
+main{display:flex;flex-direction:column;gap:14px;min-width:0}
+.sub{margin:4px 0 0;color:var(--muted)}
+.label{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--muted)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;min-width:0}
+.card.flush{padding:0}
+.list > .row{padding:12px 14px;border-top:1px solid var(--line)}
+.list > .row:first-child{border-top:0}
+.row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;align-items:center}
+.name{font-weight:600;overflow-wrap:anywhere}
+.meta{font-size:13px;color:var(--muted)}
+.right{display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+.amt{font-weight:700;font-size:16px}
+.pill{display:inline-block;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap}
+.pill.bad{background:var(--bad-soft);color:var(--bad)}
+.pill.warn{background:var(--warn-soft);color:var(--warn)}
+.pill.ok{background:var(--accent-soft);color:var(--accent)}
+.pill.neutral{background:var(--bg);color:var(--muted);border:1px solid var(--line)}
+.btn{min-height:44px;padding:0 16px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:var(--fg);font-weight:600;font-size:15px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;text-align:center}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.block{width:100%}
+.btn.sm{min-height:36px;padding:0 12px;font-size:13px;border-radius:10px}
+.btn.link{border:0;background:none;color:var(--accent);padding:0 4px;min-height:36px}
+.note{font-size:13px;color:var(--muted);margin:0}
+.seg{display:inline-flex;gap:6px}
+.seg button{width:46px;height:44px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:var(--muted);font-weight:700;font-size:16px;cursor:pointer}
+.seg button[aria-pressed="true"].p{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.seg button[aria-pressed="true"].a{background:var(--bad);border-color:var(--bad);color:var(--bad-ink)}
+.stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+.stat b{display:block;font-family:var(--font-display);font-size:26px;line-height:1.15;margin-top:2px}
+.stat.good b{color:var(--accent)} .stat.warnc b{color:var(--warn)}
+.big{font-family:var(--font-display);font-weight:700;font-size:40px;line-height:1}
+.big small{font-size:18px;color:var(--muted);font-weight:600}
+.facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:12px}
+.facts div{border-top:1px solid var(--line);padding-top:8px}
+.facts b{display:block;font-size:17px}
+.track{height:12px;border-radius:99px;background:var(--bg);border:1px solid var(--line);overflow:hidden;display:flex}
+.track i{display:block;height:100%}
+.track .a{background:var(--accent)} .track .w{background:var(--warn)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13px;color:var(--muted);margin-top:10px}
+.legend span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;background:var(--accent);vertical-align:-1px}
+.legend span.w::before{background:var(--warn)} .legend span.m::before{background:none;border-top:2px dashed var(--muted);border-radius:0;height:0;width:14px;vertical-align:3px}
+.field{display:flex;flex-direction:column;gap:6px}
+select{min-height:46px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:var(--fg);padding:0 12px;font-size:16px;width:100%}
+svg.chart{width:100%;height:auto;display:block}
+.chart .grid{stroke:var(--line);stroke-width:1}
+.chart .ax{fill:var(--muted);font-size:10px;font-family:var(--font-body)}
+.chart .val{fill:var(--fg);font-size:11px;font-weight:700;font-family:var(--font-body)}
+.chart .bar{fill:var(--bar)} .chart .bar.now{fill:var(--accent)}
+.chart .avg{fill:none;stroke:var(--muted);stroke-width:1.5;stroke-dasharray:4 3}
+.chart .dot{fill:var(--surface);stroke:var(--muted);stroke-width:1.5}
+.rank{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:10px;align-items:center;width:100%;text-align:left;border:0;background:none;color:inherit;padding:11px 14px;border-top:1px solid var(--line);cursor:pointer;font-size:15px;min-height:44px}
+.rank:first-child{border-top:0}
+.rank[aria-current="true"]{background:var(--accent-soft)}
+.rank .n{font-weight:700;color:var(--muted)}
+.hw{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;padding:11px 0;border-top:1px solid var(--line)}
+.hw:first-of-type{border-top:0}
+.upi{user-select:all;font-weight:600;overflow-wrap:anywhere}
+.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:5;background:var(--surface);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(5,minmax(0,1fr));padding:6px max(8px,env(safe-area-inset-right,0px)) env(safe-area-inset-bottom,0px) max(8px,env(safe-area-inset-left,0px))}
+.tabbar button{border:0;background:none;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:3px;padding:7px 0 6px;font-size:11px;font-weight:600;border-radius:10px;cursor:pointer;min-height:52px}
+.tabbar button svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.tabbar button[aria-current="page"]{color:var(--accent)}
+.tabbar button[aria-current="page"] svg{stroke-width:2.2}
+.scrim{position:fixed;inset:0;background:var(--scrim);z-index:20}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:21;background:var(--surface);border-radius:18px 18px 0 0;border-top:1px solid var(--line);max-height:82%;overflow:auto;padding:16px max(16px,env(safe-area-inset-left,0px)) calc(16px + env(safe-area-inset-bottom,0px));max-width:560px;margin:0 auto}
+.sheet-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:6px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(76px + env(safe-area-inset-bottom,0px));z-index:30;background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:12px;font-size:14px;font-weight:600;max-width:calc(100% - 32px);text-align:center}
+.empty{padding:22px 14px;text-align:center;color:var(--muted)}
+input{min-height:46px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:var(--fg);padding:0 12px;font-size:16px;width:100%;font-family:inherit}
+.form{display:grid;gap:12px;margin:12px 0 4px}
+.err{color:var(--bad);font-size:13px;margin:0}
+.err:empty{display:none}
+.btn.danger{color:var(--bad);border-color:var(--bad)}
+.btn.dangerfill{background:var(--bad);border-color:var(--bad);color:var(--bad-ink)}
+.brandrow{display:flex;align-items:center;gap:10px;min-width:0}
+.logo{display:inline-flex;flex:none}
+.logo img,.logo svg{width:40px;height:40px;border-radius:10px;object-fit:cover;display:block;border:1px solid var(--line)}
+.logo.big img,.logo.big svg{width:56px;height:56px;border-radius:14px}
+.sr{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;pointer-events:none}
+label.btn{position:relative}
+label.btn:focus-within{outline:2px solid var(--accent);outline-offset:2px}
+.btn:disabled{opacity:.5;cursor:default}
+textarea{border-radius:12px;border:1px solid var(--line);background:var(--surface);color:var(--fg);padding:10px 12px;font-size:16px;width:100%;font-family:inherit;resize:vertical;min-height:90px}
+pre.sample{margin:0;padding:10px 12px;border-radius:10px;background:var(--bg);border:1px solid var(--line);font-size:13px;overflow-x:auto;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.thread{display:flex;flex-direction:column;gap:8px;margin:10px 0}
+.msg{max-width:86%;padding:8px 12px;border-radius:14px;background:var(--bg);border:1px solid var(--line);align-self:flex-start;overflow-wrap:anywhere}
+.msg.me{align-self:flex-end;background:var(--accent-soft);border-color:transparent}
+.msg span{display:block;font-size:11px;color:var(--muted);margin-top:2px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{min-height:36px;padding:6px 12px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--fg);font-size:13px;cursor:pointer;text-align:left}
+.tabbar button{position:relative}
+.badge{position:absolute;top:2px;left:calc(50% + 6px);min-width:18px;height:18px;border-radius:9px;background:var(--bad);color:var(--bad-ink);font-size:11px;line-height:18px;padding:0 5px;text-align:center}
+.lockscr{position:fixed;inset:0;z-index:100;background:var(--bg);display:flex;align-items:center;justify-content:center;overflow:auto;padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.lockbox{width:100%;max-width:380px;display:flex;flex-direction:column;gap:12px;text-align:center}
+.lockbox svg.lk{width:56px;height:56px;margin:0 auto;fill:none;stroke:var(--accent);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.lockbox input{text-align:center;font-size:22px;letter-spacing:.4em}
+@media (prefers-reduced-motion:no-preference){.btn,.seg button{transition:background .12s,border-color .12s}}
+.av{width:44px;height:44px;border-radius:50%;object-fit:cover;flex:none;display:inline-flex;align-items:center;justify-content:center;background:var(--accent-soft);color:var(--accent);font-weight:700;font-size:15px;border:1px solid var(--line)}
+.av.lg{width:56px;height:56px;font-size:18px}
+.one{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;overflow-wrap:normal}
+.idc{background:#fff;color:#14201B;border-radius:16px;border:1px solid #cfdad4;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.14);max-width:340px;margin:0 auto}
+.idc-h{background:#0E6B52;color:#fff;display:flex;align-items:center;gap:10px;padding:10px 14px;min-width:0}
+.idc-lg{background:#fff;border-radius:9px;padding:2px;display:inline-flex;flex:none}
+.idc-lg img,.idc-lg svg{width:30px;height:30px;border-radius:7px;display:block;object-fit:cover;border:0}
+.idc-h b{font-family:var(--font-display);font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.idc-b{display:flex;gap:14px;padding:14px;align-items:center}
+.idc-ph{width:88px;height:108px;border-radius:12px;object-fit:cover;flex:none;background:#DDF0E8;color:#0E6B52;border:2px solid #0E6B52;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:28px;font-family:var(--font-display)}
+.idc-t{min-width:0;flex:1}
+.idc-n{font-family:var(--font-display);font-weight:700;font-size:18px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.idc-s{font-size:12px;color:#5A6A63;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:2px 0 10px}
+.idc-r{display:grid;grid-template-columns:50px minmax(0,1fr);font-size:12.5px;gap:3px 6px}
+.idc-r span{color:#5A6A63}
+.idc-r b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600}
+.idc-f{background:#DDF0E8;color:#0E6B52;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;text-align:center;padding:7px}
+</style>
 
+<div class="wrap">
+  <div class="topbar">
+    <div class="brandrow"><span class="logo" id="logo"></span><div class="brand">TuitionDesk<small id="centre"></small></div></div>
+    <div class="today" id="today"></div>
+  </div>
+  <main id="main"></main>
+</div>
+
+<nav class="tabbar" id="tabbar" aria-label="Sections"></nav>
+<div class="scrim" id="scrim" hidden></div>
+<section class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle" hidden>
+  <div class="sheet-head"><h2 id="sheetTitle"></h2><button class="btn sm" data-act="sheet-close" id="sheetClose">Done</button></div>
+  <p class="note" id="sheetIntro"></p>
+  <div id="sheetBody" style="margin-top:12px"></div>
+</section>
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+<div class="lockscr" id="lockscr" role="dialog" aria-modal="true" aria-label="App lock" hidden></div>
+
+<script>
+(function(){
+  // ---- Settings (replace with the real centre's details) ----
+  var CENTRE = 'Vidya Tuition Centre';
+  var BATCHES = [{id:1, subject:'Class 10 Maths', time:'5:00 to 6:30 PM'}, {id:2, subject:'Class 10 Science', time:'6:45 to 8:00 PM'}]; // edit in Owner > Batches
+  var nextBatchId = 3;
+  var UPI_ID = 'vidyatuition@upi'; // sample UPI ID, change it in Owner > Settings
+  var LOGO = ''; // custom logo as a small image, set in Owner > Settings
+  var OFFER = "Refer a friend and get \u20B9200 off next month's fee."; // shown to parents, change in Owner > Settings
+  var PHONE = ''; // centre WhatsApp number (10 digits), optional
+  var SOCIAL = {instagram:'', facebook:'', youtube:'', website:''}; // set in Owner > Settings
+  var MAXM = 50; // marks each weekly test is out of, change it in Owner > Settings
+  var PASSP = 35; // pass mark as a percent of the test total, change it in Owner > Settings
+  var testSubj = ['','','','','','']; // custom subject name for each of the 6 test dates, set in Tests tab
+  var testMax = [null,null,null,null,null,null]; // custom total marks per test date (null uses the default MAXM)
+  var newPhoto = ''; // photo chosen in the Add student form
+  var DEFAULT_GCLIENT = ''; // PASTE YOUR GOOGLE CLIENT ID HERE ONCE (developer). Then every centre gets one-tap Google connect, no setup.
+  var GCLIENT = DEFAULT_GCLIENT; // can be overridden in Owner > Account and Google storage
+
+  // ---- Dates (sample data is built relative to today) ----
+  var TODAY = new Date(); TODAY.setHours(0,0,0,0);
+  function addDays(d,n){ var x=new Date(d); x.setDate(x.getDate()+n); return x; }
+  function fmt(d){ return d.toLocaleDateString('en-GB',{day:'numeric',month:'short'}); }
+  var lastFri = addDays(TODAY, -((TODAY.getDay()+2)%7));
+  var testDates = [5,4,3,2,1,0].map(function(i){ return addDays(lastFri,-7*i); });
+  function inr(n){ return '₹' + Number(n).toLocaleString('en-IN'); }
+  function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  // ---- Sample data ----
+  // dueAgo: days since the fee was due (negative = due in future). att: [present, total] before today.
+  var students = [
+    {id:1, name:'Aarav Mehta',   parent:'Mrs. Mehta',   phone:'9876500001', billed:2000, paid:2000, dueAgo:0,  att:[22,24], scores:[34,38,37,40,37,41], hw:[0,1,1]},
+    {id:2, name:'Ananya Iyer',   parent:'Mr. Iyer',     phone:'9876500002', billed:2000, paid:2000, dueAgo:0,  att:[24,24], scores:[44,45,43,47,46,48], hw:[1,1,1]},
+    {id:3, name:'Rohan Gupta',   parent:'Mrs. Gupta',   phone:'9876500003', billed:2000, paid:0,    dueAgo:18, att:[20,24], scores:[28,30,33,31,35,36], hw:[0,1,0]},
+    {id:4, name:'Priya Nair',    parent:'Mr. Nair',     phone:'9876500004', billed:2000, paid:2000, dueAgo:0,  att:[23,24], scores:[40,42,39,44,43,45], hw:[1,1,1]},
+    {id:5, name:'Kabir Singh',   parent:'Mrs. Singh',   phone:'9876500005', billed:4000, paid:0,    dueAgo:48, att:[17,24], scores:[22,25,24,29,27,31], hw:[0,0,0]},
+    {id:6, name:'Isha Patel',    parent:'Mr. Patel',    phone:'9876500006', billed:2000, paid:2000, dueAgo:0,  att:[22,24], scores:[36,35,38,37,40,39], hw:[1,0,1]},
+    {id:7, name:'Vihaan Reddy',  parent:'Mrs. Reddy',   phone:'9876500007', billed:2000, paid:1000, dueAgo:13, att:[19,24], scores:[31,33,30,34,36,35], hw:[0,1,1]},
+    {id:8, name:'Diya Sharma',   parent:'Mr. Sharma',   phone:'9876500008', billed:2000, paid:2000, dueAgo:0,  att:[24,24], scores:[42,41,44,43,45,44], hw:[1,1,1]},
+    {id:9, name:'Arjun Verma',   parent:'Mrs. Verma',   phone:'9876500009', billed:2000, paid:0,    dueAgo:8,  att:[21,24], scores:[26,24,29,28,30,33], hw:[0,1,1]},
+    {id:10,name:'Saanvi Joshi',  parent:'Mr. Joshi',    phone:'9876500010', billed:2000, paid:2000, dueAgo:0,  att:[23,24], scores:[38,40,41,39,42,43], hw:[1,1,1]},
+    {id:11,name:'Mohit Yadav',   parent:'Mrs. Yadav',   phone:'9876500011', billed:2000, paid:0,    dueAgo:3,  att:[18,24], scores:[20,23,22,26,25,28], hw:[0,0,1]},
+    {id:12,name:'Neha Kulkarni', parent:'Mr. Kulkarni', phone:'9876500012', billed:2000, paid:0,    dueAgo:-2, att:[22,24], scores:[35,37,36,38,37,40], hw:[1,1,1]}
+  ];
+  students.forEach(function(s){ s.bs = (s.id%2===0) ? [1,2] : [1]; });
+  var homework = [
+    {title:'Trigonometry, Ex 8.2 Q1 to Q10', dueIn:3},
+    {title:'Quadratic equations worksheet', dueIn:3},
+    {title:'Statistics practice set, Q1 to Q8', dueIn:-1}
+  ];
+  var enquiries = [
+    {id:1, name:'Meera Pillai',  cls:'Class 9',  by:'Ananya Iyer', phone:'9876500101', ago:2, status:'New'},
+    {id:2, name:'Dev Malhotra',  cls:'Class 10', by:'Rohan Gupta', phone:'9876500102', ago:3, status:'New'},
+    {id:3, name:'Tara Bhatt',    cls:'Class 8',  by:'Diya Sharma', phone:'9876500103', ago:5, status:'Contacted'},
+    {id:4, name:'Yash Chauhan',  cls:'Class 10', by:'Aarav Mehta', phone:'9876500104', ago:8, status:'Joined', rewarded:false, converted:true}
+  ];
+
+  var queries = [
+    {id:1, stuId:3, from:'parent', text:"Rohan missed Tuesday's class because of fever. Can he get the notes?", ts:Date.now()-5*3600000},
+    {id:2, stuId:2, from:'parent', text:'When is the next parent meeting?', ts:Date.now()-26*3600000},
+    {id:3, stuId:2, from:'centre', text:'This Sunday at 11 AM at the centre. Please come on time.', ts:Date.now()-24*3600000}
+  ];
+  var templates = [
+    'Thanks for your message. We will check and reply today.',
+    'Notes for the missed class will be shared in the next class.',
+    'Please send a photo of the homework on WhatsApp.'
+  ];
+  var nextId = 13;
+  var state = {
+    tab:'fees', testStu:1, parentStu:3, idStu:1,
+    marks:{1:{5:'A',11:'A'}}, savedB:{}, attBatch:1, stuBatch:null, confirmBatch:null,
+    sheet:null, lastFocus:null, addOpen:false, confirmId:null, testIdx:5, openThread:null, upText:'', upMsg:null, dueEdit:null, enqOpen:false, confirmEnq:null, prefill:null
+  };
+  var TABS = [
+    {id:'fees', label:'Fees', icon:'<path d="M6 5h12M6 9h12M9 5c4 0 5 2 5 4s-2 4-6 4H6l8 6"/>'},
+    {id:'attendance', label:'Attendance', icon:'<rect x="4" y="4" width="16" height="16" rx="3"/><path d="m8.5 12 2.5 2.5 4.5-5"/>'},
+    {id:'tests', label:'Tests', icon:'<path d="M5 20V10M12 20V4M19 20v-7"/>'},
+    {id:'parent', label:'Parent', icon:'<circle cx="12" cy="8" r="3.5"/><path d="M5 20c.8-3.6 3.6-5.5 7-5.5s6.2 1.9 7 5.5"/>'},
+    {id:'owner', label:'Owner', icon:'<rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="4" rx="1.5"/><rect x="13" y="10" width="7" height="10" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/>'}
+  ];
+
+  // ---- Helpers ----
+  function batchById(id){ return BATCHES.filter(function(b){return b.id===Number(id);})[0]; }
+  function bLabel(b){ return b.subject+(b.time?', '+b.time:''); }
+  function inBatch(s,bid){ return (s.bs||[]).indexOf(Number(bid))>-1; }
+  function batchStudents(bid){ return students.filter(function(s){return inBatch(s,bid);}); }
+  function sBatches(s){ return (s.bs||[]).map(batchById).filter(Boolean); }
+  function sBatchText(s){ var l=sBatches(s).map(bLabel); return l.length ? l.join(' | ') : 'No batch'; }
+  function mk(bid,sid){ var m=state.marks[bid]; return (m && m[sid]) || 'P'; }
+  function setMk(bid,sid,v){ if(!state.marks[bid]) state.marks[bid]={}; state.marks[bid][sid]=v; }
+  function byId(id){ return students.filter(function(s){return s.id===Number(id);})[0]; }
+  function pend(s){ return s.billed - s.paid; }
+  function dueDate(s){ return addDays(TODAY, -s.dueAgo); }
+  function iso(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+  function daysAgoFromIso(v){ var d=new Date(v+'T00:00:00'); if(isNaN(d.getTime())) return null; return Math.round((TODAY-d)/86400000); }
+  function wa(phone,msg){ return 'https://wa.me/91'+phone+'?text='+encodeURIComponent(msg); }
+  function sum(arr){ return arr.reduce(function(a,b){return a+b;},0); }
+  function scored(idx){ return students.filter(function(x){return x.scores[idx]!=null;}); }
+  function rankOf(idx,id){ var v=byId(id).scores[idx]; if(v==null) return null; return 1+scored(idx).filter(function(x){return x.scores[idx]>v;}).length; }
+  function classAvg(idx){ var a=scored(idx); return a.length ? sum(a.map(function(x){return x.scores[idx];}))/a.length : null; }
+  function tsub(i){ return (testSubj[i] || '').trim() || 'Weekly test'; }
+  function tmax(i){ return testMax[i] || MAXM; }
+  function passMark(i){ return Math.round(tmax(i)*PASSP)/100; }
+  function isPass(v,i){ return v!=null && v>=passMark(i); }
+  function resultOf(v,i){ return v==null ? '-' : (isPass(v,i) ? 'Pass' : 'Fail'); }
+  function setTotal(idx,raw){
+    var tv=Number(raw);
+    if(raw===''||!isFinite(tv)||tv<1||tv>1000||Math.floor(tv)!==tv) return 'Enter the test total as a whole number from 1 to 1000.';
+    var hi=0; students.forEach(function(x){ if(x.scores[idx]!=null && x.scores[idx]>hi) hi=x.scores[idx]; });
+    if(tv<hi) return 'Some saved scores for this test are above '+tv+'. Use at least '+Math.ceil(hi)+'.';
+    testMax[idx]=tv; return '';
+  }
+  function attPct(s){ var c=attCount(s); return c[1] ? Math.round(100*c[0]/c[1]) : null; }
+  function attCount(s){ var p=s.att[0], t=s.att[1]; (s.bs||[]).forEach(function(b){ if(state.savedB[b]){ t++; if(mk(b,s.id)!=='A') p++; } }); return [p,t]; }
+  function feeMsg(s){
+    var late = s.dueAgo>0, base = 'Namaste '+s.parent+', a reminder from '+CENTRE+': '+s.name+"'s fee of "+inr(pend(s));
+    base += late ? ' was due on '+fmt(dueDate(s))+' ('+s.dueAgo+' days ago).' : ' is due on '+fmt(dueDate(s))+' (in '+(-s.dueAgo)+' days).';
+    return base+' You can pay by UPI to '+UPI_ID+'. Please ignore this message if you have already paid. Thank you.';
+  }
+  function absentMsg(s,b){
+    return 'Hello '+s.parent+', '+s.name+' was marked absent today ('+fmt(TODAY)+') in '+bLabel(b)+'. If this was planned, no action is needed. Please let us know if there is a problem. '+CENTRE;
+  }
+
+  // ---- Views ----
+  function viewFees(){
+    var list = students.filter(function(s){return pend(s)>0;}).sort(function(a,b){return b.dueAgo-a.dueAgo;});
+    var late = list.filter(function(s){return s.dueAgo>0;}).length;
+    var rows = list.map(function(s){
+      var pill = s.dueAgo>14 ? '<span class="pill bad">'+s.dueAgo+' days late</span>'
+               : s.dueAgo>0 ? '<span class="pill warn">'+s.dueAgo+' days late</span>'
+               : '<span class="pill neutral">Due in '+(-s.dueAgo)+' days</span>';
+      var meta = 'Due '+fmt(dueDate(s)) + (s.paid>0 ? ' · paid '+inr(s.paid)+' of '+inr(s.billed) : '');
+      return '<div class="row"><div><div class="name one">'+esc(s.name)+'</div><div class="meta">'+meta+'</div>'+
+        (state.dueEdit===s.id
+          ? '<form class="form" id="dueForm" data-id="'+s.id+'" novalidate style="margin:10px 0 0"><div class="field"><label class="label" for="dueIn">New due date</label><input id="dueIn" type="date" value="'+iso(dueDate(s))+'"></div><p class="err" id="dueErr" role="alert"></p><div style="display:flex;gap:8px"><button type="submit" class="btn sm primary">Save date</button><button type="button" class="btn sm" data-act="due-cancel">Cancel</button></div></form>'
+          : '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><button class="btn sm" data-act="mark-paid" data-id="'+s.id+'">Mark paid</button><button class="btn sm" id="due-'+s.id+'" data-act="due-edit" data-id="'+s.id+'">Change due date</button></div>')+'</div>'+
+        '<div class="right"><div class="amt">'+inr(pend(s))+'</div>'+pill+'</div></div>';
+    }).join('');
+    return '<div><h1>Pending fees</h1><p class="sub">'+(list.length ? inr(sum(list.map(pend)))+' pending from '+list.length+' students'+(late?', '+late+' late':'')+'.' : 'Everyone has paid.')+'</p></div>'+
+      (list.length ? '<button class="btn primary block" id="remind-all" data-act="remind-all">Send WhatsApp reminder to all ('+list.length+')</button>' : '')+
+      '<div class="card flush list">'+(rows || '<div class="empty">No pending fees this month.</div>')+'</div>';
+  }
+
+  function viewAttendance(){
+    var b = batchById(state.attBatch);
+    if(!b){ b = BATCHES[0]; state.attBatch = b ? b.id : null; }
+    if(!b) return '<div><h1>Attendance</h1></div><div class="card empty">No batches yet. Add one in the Owner tab.</div>';
+    var list = batchStudents(b.id), sv = !!state.savedB[b.id];
+    var absent = list.filter(function(s){return mk(b.id,s.id)==='A';});
+    var opts = BATCHES.map(function(x){ return '<option value="'+x.id+'"'+(x.id===b.id?' selected':'')+'>'+esc(bLabel(x))+'</option>'; }).join('');
+    var rows = list.map(function(s,i){
+      var m = mk(b.id,s.id);
+      return '<div class="row"><div><div class="name one">'+esc(s.name)+'</div><div class="meta">Roll '+String(i+1).padStart(2,'0')+'</div></div>'+
+        '<div class="seg" role="group" aria-label="Attendance for '+esc(s.name)+'">'+
+        '<button class="p" id="m-'+s.id+'-P" data-act="mark" data-id="'+s.id+'" data-v="P" aria-pressed="'+(m==='P')+'" aria-label="Present">P</button>'+
+        '<button class="a" id="m-'+s.id+'-A" data-act="mark" data-id="'+s.id+'" data-v="A" aria-pressed="'+(m==='A')+'" aria-label="Absent">A</button></div></div>';
+    }).join('');
+    return '<div><h1>Attendance</h1><p class="sub">'+esc(bLabel(b))+' · '+fmt(TODAY)+'</p></div>'+
+      '<div class="field"><label class="label" for="attBatch">Batch</label><select id="attBatch" data-sel="attBatch">'+opts+'</select></div>'+
+      '<div class="card" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">'+
+        '<div><b>'+(list.length-absent.length)+' present</b> · <b style="color:var(--bad)">'+absent.length+' absent</b>'+
+        (sv ? ' <span class="pill ok">Saved</span>' : '')+'</div>'+
+        '<button class="btn link" data-act="all-present">Mark all present</button></div>'+
+      '<div class="card flush list">'+(rows || '<div class="empty">No students in this batch. Assign students in Owner > Students.</div>')+'</div>'+
+      (list.length ? '<button class="btn primary block" id="save-att" data-act="save-att">Save and alert parents of absentees</button>' : '')+
+      (sv && absent.length ? '<button class="btn block" data-act="resend-att">Open absent alerts again ('+absent.length+')</button>' : '');
+  }
+
+  function chartSvg(s){
+    var W=340,H=200,L=30,R=8,T=18,B=30,iw=W-L-R,ih=H-T-B,n=6,slot=iw/n,bw=slot*0.56;
+    var CM=Math.max.apply(null,[0,1,2,3,4,5].map(tmax));
+    function y(v){ return T+ih-(v/CM)*ih; }
+    var g='', i, v, pts=[];
+    [0,1,2,3,4,5].map(function(k){ return +(CM*k/5).toFixed(1); }).forEach(function(t){
+      g+='<line class="grid" x1="'+L+'" x2="'+(W-R)+'" y1="'+y(t)+'" y2="'+y(t)+'"/><text class="ax" x="'+(L-6)+'" y="'+(y(t)+3)+'" text-anchor="end">'+t+'</text>';
+    });
+    for(i=0;i<n;i++){
+      v=s.scores[i];
+      var x=L+slot*i+(slot-bw)/2, cx=x+bw/2, av=classAvg(i);
+      if(v!=null){
+        g+='<rect class="bar'+(i===n-1?' now':'')+'" x="'+x.toFixed(1)+'" y="'+y(v).toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+(T+ih-y(v)).toFixed(1)+'" rx="3"/>';
+        g+='<text class="val" x="'+cx.toFixed(1)+'" y="'+(y(v)-5).toFixed(1)+'" text-anchor="middle">'+v+'</text>';
+      }
+      g+='<text class="ax" x="'+cx.toFixed(1)+'" y="'+(H-10)+'" text-anchor="middle">'+fmt(testDates[i])+'</text>';
+      if(av!=null) pts.push([cx,y(av)]);
+    }
+    if(pts.length>1) g+='<polyline class="avg" points="'+pts.map(function(p){return p[0].toFixed(1)+','+p[1].toFixed(1);}).join(' ')+'"/>';
+    pts.forEach(function(p){ g+='<circle class="dot" cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="2.8"/>'; });
+    var lab = s.scores.map(function(x){return x==null?'no score':x;}).join(', ');
+    return '<svg class="chart" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Last 6 test scores (axis up to '+CM+'): '+lab+'">'+g+'</svg>';
+  }
+
+  function viewTests(){
+    var s = byId(state.testStu);
+    if(!s) return '<div><h1>Weekly tests</h1></div><div class="card empty">No students yet. Add one in the Owner tab.</div>';
+    var sc = s.scores, last = sc[5], has = last!=null, rank = rankOf(5,s.id), nScored = scored(5).length, avg5 = classAvg(5);
+    var delta = (has && sc[4]!=null) ? last-sc[4] : null;
+    var opts = students.map(function(x){ return '<option value="'+x.id+'"'+(x.id===s.id?' selected':'')+'>'+esc(x.name)+'</option>'; }).join('');
+    var order = students.slice().sort(function(a,b){ return (b.scores[5]==null?-1:b.scores[5]) - (a.scores[5]==null?-1:a.scores[5]); });
+    var board = order.map(function(x){
+      var r = rankOf(5,x.id);
+      return '<button class="rank" data-act="pick-test" data-id="'+x.id+'"'+(x.id===s.id?' aria-current="true"':'')+'><span class="n">'+(r==null?'–':r)+'</span><span class="name one">'+esc(x.name)+'</span><b>'+(x.scores[5]!=null?x.scores[5]+'/'+tmax(5):'<span class="meta">No score</span>')+'</b></button>';
+    }).join('');
+    var summary = has
+      ? '<div class="meta" style="margin-bottom:6px">'+esc(tsub(5))+' · '+fmt(testDates[5])+'</div>'+
+        '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap"><div class="big">'+last+'<small>/'+tmax(5)+'</small></div>'+(isPass(last,5)?'<span class="pill ok">Pass</span>':'<span class="pill bad">Fail</span>')+'</div>'+
+        '<div class="facts"><div><span class="meta">Rank</span><b>'+rank+' of '+nScored+'</b></div>'+
+        '<div><span class="meta">vs last week</span><b style="color:'+(delta==null?'inherit':delta>=0?'var(--accent)':'var(--bad)')+'">'+(delta==null?'–':(delta>=0?'+':'−')+Math.abs(delta))+'</b></div>'+
+        '<div><span class="meta">Class average</span><b>'+avg5.toFixed(1)+'</b></div></div>'
+      : '<div class="name" style="font-size:17px">No score yet for the '+fmt(testDates[5])+' test</div><div class="meta">Enter it below to see rank and trend.</div>';
+    var ti = state.testIdx, cur = sc[ti];
+    var subOpts = BATCHES.map(function(b){ return '<option value="'+esc(b.subject)+'">'; }).join('');
+    var entry = '<div class="field" style="margin-top:14px"><label class="label" for="testIdx">Enter or change a score</label>'+
+      '<select id="testIdx" data-sel="testIdx" aria-label="Test date">'+
+      testDates.map(function(d,i){ return '<option value="'+i+'"'+(i===ti?' selected':'')+'>'+fmt(d)+(i===5?' (latest)':'')+(testSubj[i]?' · '+esc(testSubj[i]):'')+'</option>'; }).join('')+'</select>'+
+      '<label class="label" for="subIn" style="margin-top:4px">Subject name for this test</label>'+
+      '<input id="subIn" list="subList" maxlength="40" autocomplete="off" placeholder="e.g. Maths, Science, English" value="'+esc(testSubj[ti]||'')+'"><datalist id="subList">'+subOpts+'</datalist>'+
+      '<div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;margin-top:4px">'+
+      '<div class="field"><label class="label" for="totIn">Test total marks</label><input id="totIn" type="number" inputmode="numeric" min="1" max="1000" step="1" value="'+tmax(ti)+'"></div>'+
+      '<div class="field"><label class="label" for="scoreIn">Score</label><input id="scoreIn" type="number" inputmode="decimal" min="0" max="'+tmax(ti)+'" step="0.5" value="'+(cur!=null?cur:'')+'" placeholder="Score"></div></div>'+
+      '<button class="btn primary block" style="margin-top:8px" data-act="save-score">Save</button>'+
+      '<p class="err" id="scoreErr" role="alert"></p></div>';
+    var share = '';
+    if(has){
+      var got = sc.filter(function(x){return x!=null;});
+      var msg = 'Test report for '+s.name+' - '+tsub(5)+'\nTest on '+fmt(testDates[5])+': '+last+'/'+tmax(5)+' ('+Math.round(100*last/tmax(5))+'%) - '+resultOf(last,5).toUpperCase()+'\nRank: '+rank+' of '+nScored+' | Class average: '+avg5.toFixed(1)+'\nRecent tests: '+got.join(', ')+'\n'+(delta==null?'':(delta>=0?'Up ':'Down ')+Math.abs(delta)+' marks from last week.\n')+CENTRE;
+      share = '<a class="btn primary block" href="'+esc(wa(s.phone,msg))+'" target="_blank" rel="noopener">Share report on WhatsApp</a>';
+    }
+    return '<div><h1>Weekly tests</h1><p class="sub">Out of '+tmax(5)+' marks. Test held on '+fmt(testDates[5])+'.</p></div>'+
+      '<div class="field"><label class="label" for="testStu">Student</label><select id="testStu" data-sel="testStu">'+opts+'</select></div>'+
+      '<div class="card">'+summary+entry+'</div>'+
+      '<div class="card"><h2 style="margin-bottom:8px">Last 6 tests</h2>'+chartSvg(s)+'<div class="legend"><span>'+esc(s.name.split(' ')[0])+'</span><span class="m">Class average</span></div></div>'+
+      share+passFailCard()+uploadCard()+
+      '<div><div class="label" style="margin:2px 2px 8px">Class ranking, '+fmt(testDates[5])+'</div><div class="card flush">'+board+'</div></div>';
+  }
+
+  function passFailCard(){
+    var ti=state.testIdx, pm=passMark(ti);
+    var passed=students.filter(function(x){return isPass(x.scores[ti],ti);}).sort(function(a,b){return b.scores[ti]-a.scores[ti];});
+    var failed=students.filter(function(x){return x.scores[ti]!=null && !isPass(x.scores[ti],ti);}).sort(function(a,b){return a.scores[ti]-b.scores[ti];});
+    var none=students.filter(function(x){return x.scores[ti]==null;});
+    function rows(list,cls){
+      if(!list.length) return '<div class="empty" style="padding:14px">None</div>';
+      return list.map(function(x){
+        var v=x.scores[ti];
+        return '<div class="row" style="padding:10px 0;border-top:1px solid var(--line)"><div><div class="name one">'+esc(x.name)+'</div><div class="meta">'+(v!=null?Math.round(100*v/tmax(ti))+'%':'No score entered')+'</div></div>'+
+          '<div class="right">'+(v!=null?'<b>'+v+'/'+tmax(ti)+'</b>':'')+'<span class="pill '+cls+'">'+(cls==='ok'?'Pass':cls==='bad'?'Fail':'No score')+'</span></div></div>';
+      }).join('');
+    }
+    return '<div class="card"><h2>Pass and fail</h2>'+
+      '<p class="note" style="margin:4px 0 12px">Pass mark is '+pm+' out of '+tmax(ti)+' ('+PASSP+'%). Change it in Owner &gt; Settings.</p>'+
+      '<div class="field"><label class="label" for="pfIdx">Test</label><select id="pfIdx" data-sel="testIdx">'+
+      testDates.map(function(d,i){ return '<option value="'+i+'"'+(i===ti?' selected':'')+'>'+fmt(d)+' · '+esc(tsub(i))+(i===5?' (latest)':'')+'</option>'; }).join('')+'</select></div>'+
+      '<div class="stats" style="margin:12px 0"><div class="stat good"><span class="label">Passed</span><b>'+passed.length+'</b></div><div class="stat" style="border-color:var(--bad)"><span class="label">Failed</span><b style="color:var(--bad)">'+failed.length+'</b></div></div>'+
+      '<div class="label" style="color:var(--accent)">Passed ('+passed.length+')</div>'+rows(passed,'ok')+
+      '<div class="label" style="color:var(--bad);margin-top:14px">Failed ('+failed.length+')</div>'+rows(failed,'bad')+
+      (none.length?'<div class="label" style="margin-top:14px">No score yet ('+none.length+')</div>'+rows(none,'neutral'):'')+'</div>';
+  }
+
+  function viewParent(){
+    var s = byId(state.parentStu);
+    if(!s) return '<div><h1>Parent view</h1></div><div class="card empty">No students yet. Add one in the Owner tab.</div>';
+    var pct = attPct(s), c = attCount(s), p = pend(s);
+    var opts = students.map(function(x){ return '<option value="'+x.id+'"'+(x.id===s.id?' selected':'')+'>'+esc(x.name)+'</option>'; }).join('');
+    var hw = homework.map(function(h,i){
+      var done = s.hw[i]===1, d = addDays(TODAY,h.dueIn);
+      var pill = done ? '<span class="pill ok">Submitted</span>' : h.dueIn<0 ? '<span class="pill bad">Overdue</span>' : '<span class="pill neutral">Due '+fmt(d)+'</span>';
+      return '<div class="hw"><div><div class="name">'+esc(h.title)+'</div><div class="meta">'+(h.dueIn<0?'was due ':'due ')+fmt(d)+'</div></div>'+pill+'</div>';
+    }).join('');
+    var upi = 'upi://pay?pa='+UPI_ID+'&pn='+encodeURIComponent(CENTRE)+'&am='+p+'&cu=INR&tn='+encodeURIComponent('Tuition fee '+s.name);
+    var fee;
+    if(p>0){
+      var sub = s.dueAgo>0 ? 'Due '+fmt(dueDate(s))+' · '+s.dueAgo+' days late' : 'Due '+fmt(dueDate(s))+' · in '+(-s.dueAgo)+' days';
+      fee = '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px"><div><div class="big">'+inr(p)+'</div><div class="meta" style="margin-top:6px">'+sub+'</div></div>'+
+        (s.dueAgo>0?'<span class="pill bad">Overdue</span>':'<span class="pill warn">Upcoming</span>')+'</div>'+
+        '<a class="btn primary block" style="margin-top:14px" href="'+esc(upi)+'">Pay '+inr(p)+' by UPI</a>'+
+        '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:10px"><div class="meta">UPI ID: <span class="upi">'+esc(UPI_ID)+'</span></div><button class="btn sm" data-act="copy-upi">Copy</button></div>'+
+        '<p class="note" style="margin-top:8px">Opens your UPI app (Google Pay, PhonePe, Paytm). If nothing opens, copy the UPI ID and pay from your app.</p>';
+    } else {
+      fee = '<div style="display:flex;justify-content:space-between;align-items:center;gap:12px"><div><div class="name" style="font-size:17px">No fee due</div><div class="meta">All fees paid, thank you.</div></div><span class="pill ok">Paid</span></div>';
+    }
+    return '<div><h1>Parent view</h1><p class="sub">A preview of what a parent sees. Pick a student.</p></div>'+
+      '<div class="field"><label class="label" for="parentStu">Student</label><select id="parentStu" data-sel="parentStu">'+opts+'</select></div>'+
+      '<div>'+idCardHtml(s)+'<button class="btn block" style="margin:10px auto 0;max-width:340px" data-act="card-dl" data-id="'+s.id+'">Download ID card (PNG)</button></div>'+
+      '<div class="card"><div class="label">Attendance</div><div class="big" style="margin:6px 0 10px">'+(pct==null?'–':pct+'<small>%</small>')+'</div>'+
+        '<div class="track" aria-hidden="true"><i class="a" style="width:'+(pct||0)+'%"></i></div>'+
+        '<p class="meta" style="margin:8px 0 0">'+(c[1]?c[0]+' of '+c[1]+' classes attended':'No classes recorded yet')+'</p></div>'+
+      '<div class="card"><div class="label" style="margin-bottom:4px">Homework</div>'+hw+'</div>'+
+      '<div class="card"><div class="label" style="margin-bottom:8px">Fee due</div>'+fee+'</div>'+referralCard(s)+followCard()+parentQueries(s)+
+      '<div class="card"><div class="label">Student history</div><p class="note" style="margin:6px 0 12px">Fees, attendance, all test scores, homework and messages for '+esc(s.name)+' in one PDF.</p><button class="btn block" data-act="student-pdf" data-id="'+s.id+'">Download history (PDF)</button></div>';
+  }
+
+  function viewOwner(){
+    var billed = sum(students.map(function(s){return s.billed;})), paid = sum(students.map(function(s){return s.paid;})), pending = billed-paid;
+    var pc = billed ? Math.round(100*paid/billed) : 0, late = students.filter(function(s){return pend(s)>0 && s.dueAgo>0;}).length;
+    var newCount = enquiries.filter(function(e){return e.status==='New';}).length;
+    var srows = students.map(function(s){
+      if(state.confirmId===s.id){
+        return '<div class="row" style="grid-template-columns:minmax(0,1fr);background:var(--bad-soft)"><div><div class="name">Remove '+esc(s.name)+'?</div><div class="meta">Their fees, attendance and test scores are deleted. This cannot be undone.</div></div>'+
+          '<div style="display:flex;gap:8px;margin-top:6px"><button class="btn sm" data-act="remove-cancel">Cancel</button><button class="btn sm dangerfill" data-act="remove-yes" data-id="'+s.id+'">Yes, remove</button></div></div>';
+      }
+      if(state.stuBatch===s.id){
+        return '<div class="row" style="grid-template-columns:minmax(0,1fr);background:var(--accent-soft)"><div><div class="name">Batches for '+esc(s.name)+'</div>'+
+          BATCHES.map(function(x){ return '<label style="display:flex;gap:10px;align-items:center;min-height:44px"><input type="checkbox" data-sb="'+x.id+'" style="width:22px;min-height:22px;height:22px;padding:0"'+(inBatch(s,x.id)?' checked':'')+'>'+esc(bLabel(x))+'</label>'; }).join('')+
+          '<p class="err" id="sbErr" role="alert"></p><div style="display:flex;gap:8px;margin-top:6px"><button class="btn sm primary" data-act="stu-batch-save" data-id="'+s.id+'">Save</button><button class="btn sm" data-act="stu-batch-cancel">Cancel</button></div></div></div>';
+      }
+      return '<div class="row" style="grid-template-columns:minmax(0,1fr)"><div style="display:flex;gap:10px;align-items:center;min-width:0">'+avatar(s)+'<div style="min-width:0;flex:1"><div class="name one">'+esc(s.name)+'</div><div class="meta one">'+esc(s.parent)+' · +91 '+esc(s.phone)+'</div><div class="meta one">'+esc(sBatchText(s))+'</div></div></div>'+
+        '<div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-start;margin-top:4px"><button class="btn sm" data-act="stu-batch" data-id="'+s.id+'" aria-label="Change batches for '+esc(s.name)+'">Batches</button>'+photoBtns(s)+'<button class="btn sm" data-act="student-pdf" data-id="'+s.id+'" aria-label="Download history PDF for '+esc(s.name)+'">History PDF</button>'+
+        '<button class="btn sm danger" id="rm-'+s.id+'" data-act="remove-ask" data-id="'+s.id+'" aria-label="Remove '+esc(s.name)+'">Remove</button></div></div>';
+    }).join('');
+    var pf = state.prefill || {name:'', phone:''};
+    var bchecks = BATCHES.map(function(x,i){ return '<label style="display:flex;gap:10px;align-items:center;min-height:40px"><input type="checkbox" data-nb="'+x.id+'" style="width:22px;min-height:22px;height:22px;padding:0"'+(i===0?' checked':'')+'>'+esc(bLabel(x))+'</label>'; }).join('');
+    var form = !state.addOpen ? '' :
+      '<form class="form" id="addForm" novalidate>'+
+        '<div class="field"><label class="label" for="fName">Student name</label><input id="fName" autocomplete="off" value="'+esc(pf.name)+'"></div>'+
+        '<div class="field"><label class="label" for="fParent">Parent name</label><input id="fParent" autocomplete="off" placeholder="e.g. Mrs. Rao"></div>'+
+        '<div class="field"><label class="label" for="fPhone">Parent WhatsApp number</label><input id="fPhone" inputmode="numeric" maxlength="10" autocomplete="off" placeholder="10-digit mobile number" value="'+esc(pf.phone)+'"></div>'+
+        '<div class="field"><label class="label" for="fFee">Monthly fee (₹)</label><input id="fFee" type="number" inputmode="numeric" min="0" value="2000"></div>'+
+        '<div class="field"><label class="label" for="fDue">First fee due date</label><input id="fDue" type="date" value="'+iso(addDays(TODAY,7))+'"></div>'+
+        '<div class="field"><span class="label">Photo (optional)</span><div style="display:flex;align-items:center;gap:10px"><span id="newPhotoPrev">'+(newPhoto?'<img class="av" src="'+esc(newPhoto)+'" alt="Photo preview">':'')+'</span><label class="btn sm" for="fPhoto">Choose photo<input class="sr" id="fPhoto" type="file" accept="image/*" data-photo="new"></label></div></div>'+
+        '<div class="field"><span class="label">Batches</span>'+(bchecks||'<p class="note">Add a batch first.</p>')+'</div>'+
+        '<p class="err" id="formErr" role="alert"></p>'+
+        '<div style="display:flex;gap:8px"><button type="submit" class="btn primary" style="flex:1">Add student</button><button type="button" class="btn" data-act="add-toggle">Cancel</button></div></form>';
+    var settings = '<div><div class="label" style="margin:2px 2px 8px">Settings</div><form class="card form" id="setForm" style="margin:0" novalidate>'+
+      '<div class="field"><label class="label" for="sName">Centre name</label><input id="sName" autocomplete="off" value="'+esc(CENTRE)+'"></div>'+
+      '<div class="field"><label class="label" for="sUpi">UPI ID for fee payments</label><input id="sUpi" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="name@bank" value="'+esc(UPI_ID)+'"></div>'+
+      '<div class="field"><label class="label" for="sMax">Default test total (marks)</label><input id="sMax" type="number" inputmode="numeric" min="1" max="1000" value="'+MAXM+'"></div>'+
+      '<div class="field"><label class="label" for="sPass">Pass mark (% of total)</label><input id="sPass" type="number" inputmode="numeric" min="1" max="100" value="'+PASSP+'"></div>'+
+      '<div class="field"><label class="label" for="sOffer">Referral offer shown to parents</label><input id="sOffer" maxlength="120" autocomplete="off" placeholder="e.g. Refer a friend and get ₹200 off" value="'+esc(OFFER)+'"></div>'+
+      '<div class="field"><label class="label" for="sPhone">Centre WhatsApp number (optional)</label><input id="sPhone" inputmode="numeric" maxlength="10" autocomplete="off" placeholder="10-digit mobile number" value="'+esc(PHONE)+'"></div>'+
+      '<div class="field"><label class="label" for="sIg">Instagram</label><input id="sIg" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="@yourcentre or a link" value="'+esc(SOCIAL.instagram)+'"></div>'+
+      '<div class="field"><label class="label" for="sFb">Facebook</label><input id="sFb" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="https://facebook.com/yourcentre" value="'+esc(SOCIAL.facebook)+'"></div>'+
+      '<div class="field"><label class="label" for="sYt">YouTube</label><input id="sYt" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="https://youtube.com/@yourcentre" value="'+esc(SOCIAL.youtube)+'"></div>'+
+      '<div class="field"><label class="label" for="sWeb">Website</label><input id="sWeb" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="https://yourcentre.in" value="'+esc(SOCIAL.website)+'"></div>'+
+      '<p class="note">The offer, centre number and social links appear on the Parent tab, where parents can follow the centre and share it with friends.</p>'+
+      '<div class="field"><label class="label" for="sQuick">Quick replies for parent queries (one per line)</label><textarea id="sQuick" rows="4">'+esc(templates.join('\n'))+'</textarea></div>'+
+      '<div class="field"><span class="label">App logo</span><div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap"><span class="logo big" id="logoPrev"></span>'+
+        '<div style="display:flex;gap:8px;flex-wrap:wrap"><label class="btn sm" for="logoFile">Choose image<input class="sr" id="logoFile" type="file" accept="image/*"></label>'+
+        '<button type="button" class="btn sm" id="logoRemove" data-act="logo-remove"'+(LOGO?'':' disabled')+'>Use default</button></div></div>'+
+        '<p class="err" id="logoErr" role="alert"></p><p class="note">Shown in the app header. The picture is cropped to a square.</p></div>'+
+      '<p class="note">The UPI ID is used in fee reminders and on the parent Pay by UPI button. The default test total applies to every test that has no custom total. You can set a different total for any single test in the Tests tab. Changing a total does not rescale scores already entered.</p>'+
+      '<p class="err" id="setErr" role="alert"></p><button type="submit" class="btn primary">Save settings</button></form></div>';
+    return '<div><h1>Owner dashboard</h1><p class="sub">'+TODAY.toLocaleDateString('en-GB',{month:'long',year:'numeric'})+' fees, students and enquiries.</p></div>'+
+      '<div class="stats"><div class="stat"><span class="label">Students</span><b>'+students.length+'</b></div>'+
+        '<div class="stat good"><span class="label">Collected</span><b>'+inr(paid)+'</b></div>'+
+        '<div class="stat warnc"><span class="label">Pending</span><b>'+inr(pending)+'</b></div>'+
+        '<div class="stat"><span class="label">New enquiries</span><b>'+newCount+'</b></div></div>'+
+      '<div class="card"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px"><h2>Collected vs pending</h2><b>'+pc+'% collected</b></div>'+
+        '<div class="track" role="img" aria-label="'+pc+' percent of fees collected"><i class="a" style="width:'+pc+'%"></i><i class="w" style="width:'+(billed?100-pc:0)+'%"></i></div>'+
+        '<div class="legend"><span>Collected '+inr(paid)+'</span><span class="w">Pending '+inr(pending)+'</span></div>'+
+        '<p class="note" style="margin-top:10px">'+late+' students are late with fees. Reminders are on the Fees tab.</p></div>'+
+      ownerQueries()+batchCard()+
+      '<div><div style="display:flex;justify-content:space-between;align-items:center;margin:2px 2px 8px"><span class="label">Students ('+students.length+')</span>'+
+        '<button class="btn sm primary" id="add-btn" data-act="add-toggle" aria-expanded="'+state.addOpen+'">'+(state.addOpen?'Close form':'Add student')+'</button></div>'+
+        '<div class="card'+(srows?' flush':'')+'" style="'+(form&&srows?'padding:0 14px 0':'')+'">'+form+(srows?'<div class="list" style="margin:0 '+(form?'-14px':'0')+'">'+srows+'</div>':'<div class="empty">No students yet. Tap Add student.</div>')+'</div></div>'+
+      idCardSection()+ownerEnquiries()+exportCard()+cloudCard()+settings+lockCard();
+  }
+
+  function batchCard(){
+    var rows = BATCHES.map(function(b){
+      var n = batchStudents(b.id).length;
+      if(state.confirmBatch===b.id){
+        return '<div style="padding:12px;margin:8px 0;border-radius:12px;background:var(--bad-soft)"><div class="name">Remove '+esc(b.subject)+'?</div><div class="meta">Its '+n+' students stay in the app but lose this batch. Attendance for it is cleared.</div>'+
+          '<div style="display:flex;gap:8px;margin-top:8px"><button class="btn sm" data-act="batch-cancel">Cancel</button><button class="btn sm dangerfill" data-act="batch-yes" data-id="'+b.id+'">Yes, remove</button></div></div>';
+      }
+      return '<div style="padding:12px 0;border-top:1px solid var(--line)">'+
+        '<div class="field"><label class="label" for="bsub-'+b.id+'">Subject / batch name</label><input id="bsub-'+b.id+'" data-bf="subject" data-id="'+b.id+'" maxlength="40" autocomplete="off" value="'+esc(b.subject)+'"></div>'+
+        '<div class="field" style="margin-top:8px"><label class="label" for="btime-'+b.id+'">Time</label><input id="btime-'+b.id+'" data-bf="time" data-id="'+b.id+'" maxlength="30" autocomplete="off" placeholder="e.g. 5:00 to 6:30 PM" value="'+esc(b.time)+'"></div>'+
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px"><span class="meta">'+n+' students</span>'+
+        '<button class="btn sm danger" data-act="batch-ask" data-id="'+b.id+'"'+(BATCHES.length<2?' disabled':'')+' aria-label="Remove '+esc(b.subject)+'">Remove</button></div></div>';
+    }).join('');
+    return '<div><div style="display:flex;justify-content:space-between;align-items:center;margin:2px 2px 8px"><span class="label">Batches ('+BATCHES.length+')</span>'+
+      '<button class="btn sm primary" data-act="batch-add">Add batch</button></div>'+
+      '<div class="card"><p class="note">Each batch has its own subject, time and attendance. Changes save as you type. A student can be in more than one batch.</p>'+rows+'</div></div>';
+  }
+
+  // ---- Saving on this device ----
+  var KEY = 'tuitiondesk-v1';
+  function snapshot(){
+    return ({day:TODAY.toDateString(), students:students, enquiries:enquiries, cfg:{centre:CENTRE, upi:UPI_ID, maxm:MAXM, logo:LOGO, offer:OFFER, phone:PHONE, social:SOCIAL, passp:PASSP, gid:GCLIENT}, testSubj:testSubj, testMax:testMax, queries:queries, templates:templates, nextId:nextId, marks:state.marks, savedB:state.savedB, batches:BATCHES, nextBatchId:nextBatchId});
+  }
+  function save(){
+    try{ localStorage.setItem(KEY, JSON.stringify(snapshot())); }catch(e){}
+    cloudQueue();
+  }
+  function load(){
+    try{
+      var d = JSON.parse(localStorage.getItem(KEY) || 'null');
+      if(!d || !d.students) return;
+      if(d.cfg){ CENTRE = d.cfg.centre || CENTRE; UPI_ID = d.cfg.upi || UPI_ID; MAXM = d.cfg.maxm || MAXM; LOGO = d.cfg.logo || ''; if(d.cfg.offer!=null) OFFER = d.cfg.offer; PHONE = d.cfg.phone || ''; if(d.cfg.social) SOCIAL = d.cfg.social; if(d.cfg.passp) PASSP = d.cfg.passp; if(d.cfg.gid) GCLIENT = d.cfg.gid; }
+      if(d.testSubj && d.testSubj.length===6) testSubj = d.testSubj;
+      if(d.testMax && d.testMax.length===6) testMax = d.testMax;
+      if(d.queries) queries = d.queries;
+      if(d.templates) templates = d.templates;
+      students = d.students; enquiries = d.enquiries || enquiries; nextId = d.nextId || nextId;
+      var oldFmt = !(d.batches && d.batches.length);
+      if(oldFmt){ BATCHES = [BATCHES[0]]; nextBatchId = 2; }
+      else { BATCHES = d.batches; nextBatchId = d.nextBatchId || (BATCHES.reduce(function(m,x){return Math.max(m,x.id);},0)+1); }
+      students.forEach(function(s){ if(!s.bs) s.bs = [BATCHES[0].id]; });
+      var dm = oldFmt ? {} : (d.marks || {}), dsv = oldFmt ? {} : (d.savedB || {});
+      var old = new Date(d.day); old.setHours(0,0,0,0);
+      var diff = Math.round((TODAY-old)/86400000);
+      if(diff>0){
+        students.forEach(function(s){
+          s.bs.forEach(function(bid){ if(dsv[bid]){ s.att[1]+=1; if(!(dm[bid] && dm[bid][s.id]==='A')) s.att[0]+=1; } });
+          if(pend(s)>0) s.dueAgo += diff;
+        });
+        enquiries.forEach(function(q){ q.ago += diff; });
+        state.marks = {}; state.savedB = {};
+      } else { state.marks = dm; state.savedB = dsv; }
+      if(!batchById(state.attBatch)) state.attBatch = BATCHES[0].id;
+      var first = students.length ? students[0].id : null;
+      if(!byId(state.testStu)) state.testStu = first;
+      if(!byId(state.parentStu)) state.parentStu = first;
+    }catch(e){}
+  }
+
+  // ---- Queries and score upload ----
+  function timeAgo(ts){
+    var m=Math.round((Date.now()-ts)/60000); if(m<1) return 'just now'; if(m<60) return m+' min ago';
+    var h=Math.round(m/60); if(h<24) return h+' h ago';
+    var d=Math.round(h/24); return d+(d===1?' day ago':' days ago');
+  }
+  function thread(sid){ return queries.filter(function(q){return q.stuId===sid;}).sort(function(a,b){return a.ts-b.ts;}); }
+  function nextQ(){ return queries.reduce(function(m,q){return Math.max(m,q.id);},0)+1; }
+  function replyCount(){
+    return students.filter(function(st){ var th=thread(st.id); return th.length && th[th.length-1].from==='parent'; }).length;
+  }
+  function bubbles(list,me){
+    if(!list.length) return '<p class="note">No messages yet.</p>';
+    return list.map(function(q){
+      return '<div class="msg'+(q.from===me?' me':'')+'"><div>'+esc(q.text)+'</div><span>'+(q.from==='parent'?'Parent':'Centre')+' \u00B7 '+timeAgo(q.ts)+'</span></div>';
+    }).join('');
+  }
+  function parentQueries(s){
+    return '<div class="card"><div class="label">Ask the centre</div><div class="thread">'+bubbles(thread(s.id),'parent')+'</div>'+
+      '<form id="qForm" style="display:flex;gap:8px"><input id="qIn" autocomplete="off" maxlength="500" placeholder="Type your question" aria-label="Your question"><button class="btn primary" type="submit">Send</button></form>'+
+      '<p class="err" id="qErr" role="alert"></p></div>';
+  }
+  function ownerQueries(){
+    var ids=students.filter(function(st){return thread(st.id).length>0;}).map(function(st){return st.id;});
+    ids.sort(function(a,b){ var ta=thread(a), tb=thread(b); return tb[tb.length-1].ts-ta[ta.length-1].ts; });
+    var n=replyCount();
+    var rows=ids.map(function(sid){
+      var st=byId(sid), th=thread(sid), last=th[th.length-1], open=state.openThread===sid, need=last.from==='parent';
+      var head='<div class="row"><div><div class="name">'+esc(st.name)+' <span class="meta">\u00B7 '+esc(st.parent)+'</span></div>'+
+        '<div class="meta" style="overflow-wrap:anywhere">'+esc(last.text.length>70?last.text.slice(0,70)+'\u2026':last.text)+' \u00B7 '+timeAgo(last.ts)+'</div></div>'+
+        '<div class="right">'+(need?'<span class="pill warn">Needs reply</span>':'<span class="pill ok">Replied</span>')+
+        '<button class="btn sm" data-act="thread-toggle" data-id="'+sid+'" aria-expanded="'+open+'">'+(open?'Close':'Open')+'</button></div></div>';
+      if(!open) return head;
+      var chips=templates.map(function(tx,i){ return '<button type="button" class="chip" data-act="quick" data-i="'+i+'">'+esc(tx)+'</button>'; }).join('');
+      return head+'<div style="padding:0 14px 14px;border-top:1px dashed var(--line)"><div class="thread">'+bubbles(th,'centre')+'</div>'+
+        (chips?'<div class="label" style="margin-bottom:6px">Quick replies</div><div class="chips">'+chips+'</div>':'')+
+        '<form id="rForm" data-id="'+sid+'" style="display:flex;gap:8px;margin-top:10px"><input id="rIn" autocomplete="off" placeholder="Type a reply" aria-label="Reply"><button class="btn primary" type="submit">Send</button></form>'+
+        '<p class="err" id="rErr" role="alert"></p>'+
+        '<a class="btn sm" href="https://wa.me/91'+esc(st.phone)+'" target="_blank" rel="noopener">Open WhatsApp chat</a></div>';
+    }).join('');
+    return '<div><div class="label" style="margin:2px 2px 8px">Parent queries'+(n?' ('+n+' need a reply)':'')+'</div><div class="card flush list">'+(rows||'<div class="empty">No queries yet. Parents can ask from the Parent tab.</div>')+'</div></div>';
+  }
+  function sampleCsv(){
+    var rows=['Name,Score'];
+    students.forEach(function(st,i){ rows.push(st.name+','+Math.round(tmax(state.testIdx)*(0.5+((i*37)%45)/100))); });
+    return rows.join('\n');
+  }
+  function uploadCard(){
+    var ti=state.testIdx, sample=sampleCsv(), prev=sample.split('\n').slice(0,5).join('\n')+(students.length>4?'\n...':'');
+    var m=state.upMsg, msg='';
+    if(m){
+      msg='<div role="status" style="margin-top:10px">'+
+        (m.ok?'<p class="note" style="color:var(--accent);font-weight:600">Updated '+m.ok+' score'+(m.ok===1?'':'s')+' for the '+fmt(testDates[m.idx])+' '+esc(tsub(m.idx))+' test.</p>':'')+
+        (m.bad.length?'<p class="err">Not imported ('+m.bad.length+'): '+esc(m.bad.slice(0,5).join('; '))+(m.bad.length>5?'; and more':'')+'</p>':'')+'</div>';
+    }
+    return '<div class="card"><h2>Upload test scores</h2><p class="note" style="margin:4px 0 12px">Add a whole class at once. One row per student: name, then score out of the test total. Names must match the student list.</p>'+
+      '<div class="field"><label class="label" for="upIdx">Test date</label><select id="upIdx" data-sel="testIdx">'+
+      testDates.map(function(d,i){ return '<option value="'+i+'"'+(i===ti?' selected':'')+'>'+fmt(d)+(i===5?' (latest)':'')+'</option>'; }).join('')+'</select></div>'+
+      '<div class="field" style="margin-top:10px"><label class="label" for="upSub">Subject name for this test</label><input id="upSub" list="subList" maxlength="40" autocomplete="off" placeholder="e.g. Maths, Science, English" value="'+esc(testSubj[ti]||'')+'"></div>'+
+      '<div class="field" style="margin-top:10px"><label class="label" for="upTot">Test total marks</label><input id="upTot" type="number" inputmode="numeric" min="1" max="1000" value="'+tmax(ti)+'"></div>'+
+      '<div style="margin:12px 0 8px"><label class="btn sm" for="upFile">Choose CSV file<input class="sr" id="upFile" type="file" accept=".csv,.txt,text/csv,text/plain"></label></div>'+
+      '<label class="label" for="upText">Or paste the rows here</label><textarea id="upText" rows="5" placeholder="Name,Score" style="margin-top:6px">'+esc(state.upText)+'</textarea>'+
+      '<button class="btn primary block" style="margin-top:10px" data-act="up-import">Import scores</button>'+msg+
+      '<div style="margin-top:16px;border-top:1px solid var(--line);padding-top:14px"><div class="label" style="margin-bottom:8px">Sample file format</div><pre class="sample">'+esc(prev)+'</pre>'+
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="btn sm" data-act="up-sample-fill">Use sample in box</button><button class="btn sm" data-act="up-sample-copy">Copy sample</button></div>'+
+      '<p class="note" style="margin-top:8px">To make your own file, save a spreadsheet as CSV with two columns, Name and Score.</p></div></div>';
+  }
+  function importScores(){
+    var txt=document.getElementById('upText').value, idx=state.testIdx, upd=0, bad=[];
+    var usub=document.getElementById('upSub'); if(usub) testSubj[idx]=usub.value.trim().replace(/\s+/g,' ');
+    var utot=document.getElementById('upTot');
+    if(utot){ var terr=setTotal(idx,utot.value.trim()); if(terr){ state.upMsg={ok:0,bad:[terr],idx:idx}; state.upText=txt; render(); toast('No scores imported'); return; } }
+    txt.split(/\r?\n/).forEach(function(line,i){
+      line=line.trim(); if(!line) return;
+      var parts=line.split(/[,\t;]/);
+      if(parts.length<2){ bad.push(line+' (needs name and score)'); return; }
+      var raw=parts[parts.length-1].trim(), name=parts.slice(0,-1).join(',').replace(/^"|"$/g,'').replace(/\s+/g,' ').trim(), v=Number(raw);
+      if(raw===''||!isFinite(v)){ if(i===0) return; bad.push(name+' (score "'+raw+'" is not a number)'); return; }
+      if(v<0||v>tmax(idx)){ bad.push(name+' (score '+raw+' is outside 0 to '+tmax(idx)+')'); return; }
+      var st=students.filter(function(x){return x.name.toLowerCase()===name.toLowerCase();})[0];
+      if(!st){ bad.push(name+' (not in student list)'); return; }
+      st.scores[idx]=Math.round(v*2)/2; upd++;
+    });
+    state.upMsg={ok:upd, bad:bad, idx:idx};
+    if(!bad.length && upd) state.upText='';
+    else state.upText=txt;
+    render();
+    toast(upd?upd+' score'+(upd===1?'':'s')+' imported':'No scores imported');
+  }
+  function readUp(input){
+    var f=input.files && input.files[0]; if(!f) return;
+    if(f.size>1024*1024){ toast('That file is too large. Use one under 1 MB.'); input.value=''; return; }
+    var r=new FileReader();
+    r.onload=function(){ state.upText=String(r.result); var ta=document.getElementById('upText'); if(ta) ta.value=state.upText; toast('File loaded. Check the rows, then tap Import scores.'); };
+    r.onerror=function(){ toast('Could not read that file.'); };
+    r.readAsText(f); input.value='';
+  }
+
+  // ---- Referrals and social media ----
+  function socialLinks(){
+    return [['instagram','Instagram'],['facebook','Facebook'],['youtube','YouTube'],['website','Website']]
+      .filter(function(f){return SOCIAL[f[0]];}).map(function(f){return {key:f[0], label:f[1], url:SOCIAL[f[0]]};});
+  }
+  function normUrl(v,ig){
+    v=v.trim(); if(!v) return '';
+    if(ig && /^@?[A-Za-z0-9._]{1,30}$/.test(v)) return 'https://instagram.com/'+v.replace(/^@/,'');
+    if(!/^https?:\/\//i.test(v)) v='https://'+v;
+    return /^https?:\/\/[^\s\/]+\.[^\s\/]+(\/\S*)?$/i.test(v) ? v : null;
+  }
+  function refMsg(s){
+    var m='Hi! My child '+s.name.split(' ')[0]+' studies at '+CENTRE+' and I recommend it.';
+    if(OFFER) m+=' '+OFFER;
+    if(PHONE) m+='\nMessage them on WhatsApp: https://wa.me/91'+PHONE;
+    socialLinks().forEach(function(l){ m+='\n'+l.label+': '+l.url; });
+    return m;
+  }
+  function referralCard(s){
+    return '<div class="card"><div class="label">Refer a friend</div>'+
+      (OFFER ? '<p style="margin:8px 0 12px;font-weight:600">'+esc(OFFER)+'</p>' : '<p class="note" style="margin:8px 0 12px">Share '+esc(CENTRE)+' with a friend.</p>')+
+      '<a class="btn primary block" href="'+esc('https://wa.me/?text='+encodeURIComponent(refMsg(s)))+'" target="_blank" rel="noopener">Share on WhatsApp</a>'+
+      '<button class="btn block" style="margin-top:8px" data-act="copy-ref">Copy message</button></div>';
+  }
+  function followCard(){
+    var L=socialLinks(); if(!L.length && !PHONE) return '';
+    return '<div class="card"><div class="label" style="margin-bottom:10px">Follow '+esc(CENTRE)+'</div><div style="display:flex;flex-wrap:wrap;gap:8px">'+
+      L.map(function(l){ return '<a class="btn sm" href="'+esc(l.url)+'" target="_blank" rel="noopener">'+l.label+'</a>'; }).join('')+
+      (PHONE ? '<a class="btn sm primary" href="https://wa.me/91'+esc(PHONE)+'" target="_blank" rel="noopener">Message the centre</a>' : '')+'</div></div>';
+  }
+  function nextE(){ return enquiries.reduce(function(m,q){return Math.max(m,q.id);},0)+1; }
+  function ownerEnquiries(){
+    var form='';
+    if(state.enqOpen){
+      form='<form class="form" id="enqForm" novalidate style="margin:14px 0 0">'+
+        '<div class="field"><label class="label" for="eName">Child’s name</label><input id="eName" autocomplete="off"></div>'+
+        '<div class="field"><label class="label" for="eCls">Class</label><select id="eCls">'+[5,6,7,8,9,10,11,12].map(function(n){return '<option'+(n===10?' selected':'')+'>Class '+n+'</option>';}).join('')+'</select></div>'+
+        '<div class="field"><label class="label" for="eBy">Referred by</label><select id="eBy"><option value="">Walk-in or other</option>'+students.map(function(x){return '<option>'+esc(x.name)+'</option>';}).join('')+'</select></div>'+
+        '<div class="field"><label class="label" for="ePhone">Parent WhatsApp number</label><input id="ePhone" inputmode="numeric" maxlength="10" autocomplete="off" placeholder="10-digit mobile number"></div>'+
+        '<p class="err" id="enqErr" role="alert"></p>'+
+        '<div style="display:flex;gap:8px"><button type="submit" class="btn primary" style="flex:1">Add enquiry</button><button type="button" class="btn" data-act="enq-toggle">Cancel</button></div></form>';
+    }
+    var rows=enquiries.map(function(e){
+      if(state.confirmEnq===e.id){
+        return '<div class="row" style="grid-template-columns:minmax(0,1fr);background:var(--bad-soft)"><div><div class="name">Delete enquiry from '+esc(e.name)+'?</div><div class="meta">This cannot be undone.</div></div>'+
+          '<div style="display:flex;gap:8px;margin-top:6px"><button class="btn sm" data-act="enq-cancel">Cancel</button><button class="btn sm dangerfill" data-act="enq-yes" data-id="'+e.id+'">Yes, delete</button></div></div>';
+      }
+      var pill = e.status==='New' ? '<span class="pill warn">New</span>' : e.status==='Contacted' ? '<span class="pill neutral">Contacted</span>' : '<span class="pill ok">Joined</span>';
+      var extra = (e.status==='Joined' && e.by) ? (e.rewarded ? '<span class="pill ok">Reward given</span>' : '<span class="pill warn">Reward due</span>') : '';
+      var acts=[];
+      if(e.status!=='Joined'){
+        acts.push('<a class="btn sm" href="'+esc(wa(e.phone,'Hello, thank you for your interest in '+CENTRE+'. When would be a good time to talk about the '+e.cls+' batch?'))+'" target="_blank" rel="noopener">Message on WhatsApp</a>');
+        acts.push('<button class="btn sm" data-act="enq-next" data-id="'+e.id+'">'+(e.status==='New'?'Mark contacted':'Mark joined')+'</button>');
+      } else {
+        if(!e.converted) acts.push('<button class="btn sm primary" data-act="enq-student" data-id="'+e.id+'">Add as student</button>');
+        if(e.by && !e.rewarded) acts.push('<button class="btn sm" data-act="enq-reward" data-id="'+e.id+'">Mark reward given</button>');
+      }
+      acts.push('<button class="btn sm danger" data-act="enq-ask" data-id="'+e.id+'" aria-label="Delete enquiry from '+esc(e.name)+'">Delete</button>');
+      return '<div class="row"><div><div class="name">'+esc(e.name)+' <span class="meta">· '+esc(e.cls)+'</span></div>'+
+        '<div class="meta">Referred by '+(e.by?esc(e.by):'walk-in or other')+' · '+(e.ago===0?'today':e.ago+' days ago')+'</div>'+
+        '<div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">'+acts.join('')+'</div></div><div class="right">'+pill+extra+'</div></div>';
+    }).join('');
+    return '<div><div style="display:flex;justify-content:space-between;align-items:center;margin:2px 2px 8px"><span class="label">Referral enquiries ('+enquiries.length+')</span>'+
+      '<button class="btn sm primary" id="enq-btn" data-act="enq-toggle" aria-expanded="'+state.enqOpen+'">'+(state.enqOpen?'Close form':'Add enquiry')+'</button></div>'+
+      '<p class="note" style="margin:0 2px 8px">'+(OFFER?'Offer shown to parents: '+esc(OFFER):'No referral offer set.')+' Change it in Settings below.</p>'+
+      '<div class="card flush">'+(form?'<div style="padding:0 14px 14px">'+form+'</div>':'')+
+      (rows?'<div class="list"'+(form?' style="border-top:1px solid var(--line)"':'')+'>'+rows+'</div>':'<div class="empty">No enquiries yet. Tap Add enquiry.</div>')+'</div></div>';
+  }
+
+  // ---- Export all data as PDF ----
+  function makePdf(){
+    var PW=595, PH=842, M=40, CW=PW-2*M, pages=[], ops, y, imgs=[];
+    function np(){ ops=[]; pages.push(ops); y=PH-M; }
+    function clean(s){
+      return String(s==null?'':s).replace(/₹/g,'Rs.').replace(/[‘’]/g,"'").replace(/[“”]/g,'"')
+        .replace(/[–—−]/g,'-').replace(/·/g,'-').replace(/…/g,'...').replace(/\s+/g,' ').replace(/[^\x20-\x7E]/g,'?');
+    }
+    function esc2(s){ return s.replace(/\\/g,'\\\\').replace(/\(/g,'\\(').replace(/\)/g,'\\)'); }
+    function put(o,x,yy,s,size,bold){ o.push('BT /'+(bold?'F2':'F1')+' '+size+' Tf '+x.toFixed(1)+' '+yy.toFixed(1)+' Td ('+esc2(clean(s))+') Tj ET'); }
+    function fit(s,w,size){ s=clean(s); var max=Math.floor(w/(size*0.54)); return s.length>max ? s.slice(0,Math.max(0,max-3))+'...' : s; }
+    function wrap(s,w,size){
+      var max=Math.max(8,Math.floor(w/(size*0.54))), words=clean(s).split(' '), lines=[], cur='';
+      words.forEach(function(wd){
+        while(wd.length>max){ if(cur){ lines.push(cur); cur=''; } lines.push(wd.slice(0,max)); wd=wd.slice(max); }
+        if((cur+' '+wd).trim().length>max){ lines.push(cur); cur=wd; } else cur=(cur+' '+wd).trim();
+      });
+      if(cur) lines.push(cur);
+      return lines.length?lines:[''];
+    }
+    function need(h){ if(y-h<M+16) np(); }
+    np();
+    var api = {
+      title:function(t,sub){ put(ops,M,y-18,t,20,true); y-=26; put(ops,M,y-12,sub,9,false); y-=22; },
+      h:function(t,note){ need(60); y-=10; put(ops,M,y-12,t,13,true); y-=17; if(note){ put(ops,M,y-9,note,8.5,false); y-=13; } ops.push('0.75 G 0.6 w '+M+' '+(y-2)+' m '+(PW-M)+' '+(y-2)+' l S'); y-=8; },
+      p:function(t,size,bold){ size=size||9.5; wrap(t,CW,size).forEach(function(l){ need(size+5); put(ops,M,y-size,l,size,!!bold); y-=size+4; }); },
+      photo:function(url,size){
+        try{
+          var bin=atob(String(url).split(',')[1]||'');
+          if(bin.length<4 || bin.charCodeAt(0)!==255 || bin.charCodeAt(1)!==216 || imgs.length) return;
+          imgs.push({d:bin});
+          var px=PW-M-size, py=PH-M-size;
+          pages[0].push('q '+size+' 0 0 '+size+' '+px+' '+py+' cm /Im0 Do Q');
+          pages[0].push('0.8 G 0.6 w '+px+' '+py+' '+size+' '+size+' re S');
+        }catch(e){}
+      },
+      gap:function(n){ y-=n; },
+      table:function(cols,rows){
+        var RH=16, FS=9;
+        function head(){
+          need(RH*2); ops.push('0.89 0.95 0.92 rg '+M+' '+(y-RH)+' '+CW+' '+RH+' re f 0 g');
+          var x=M; cols.forEach(function(c){ var s=fit(c.t,c.w-8,FS), tx=c.a==='r'?x+c.w-4-s.length*FS*0.54:x+4; put(ops,tx,y-RH+5,s,FS,true); x+=c.w; });
+          y-=RH;
+        }
+        head();
+        if(!rows.length){ need(RH); put(ops,M+4,y-RH+5,'No data',FS,false); y-=RH; return; }
+        rows.forEach(function(r){
+          if(y-RH<M+16){ np(); head(); }
+          var x=M; cols.forEach(function(c,i){ var s=fit(r[i],c.w-8,FS), tx=c.a==='r'?x+c.w-4-s.length*FS*0.54:x+4; put(ops,tx,y-RH+5,s,FS,!!r.bold); x+=c.w; });
+          ops.push('0.85 G 0.4 w '+M+' '+(y-RH)+' m '+(PW-M)+' '+(y-RH)+' l S');
+          y-=RH;
+        });
+      },
+      finish:function(footer){
+        var n=pages.length;
+        pages.forEach(function(o,i){ put(o,M,22,footer,8,false); var t='Page '+(i+1)+' of '+n; put(o,PW-M-t.length*8*0.54,22,t,8,false); });
+        var objs=[], kids=[], i;
+        objs[1]='<< /Type /Catalog /Pages 2 0 R >>';
+        objs[3]='<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>';
+        objs[4]='<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>';
+        for(i=0;i<n;i++){
+          var cs=pages[i].join('\n'), cid=5+2*i, pid=6+2*i;
+          objs[cid]='<< /Length '+cs.length+' >>\nstream\n'+cs+'\nendstream';
+          objs[pid]='<< /Type /Page /Parent 2 0 R /MediaBox [0 0 '+PW+' '+PH+'] /Resources << /Font << /F1 3 0 R /F2 4 0 R >>'+(imgs.length?' /XObject << /Im0 '+(5+2*n)+' 0 R >>':'')+' >> /Contents '+cid+' 0 R >>';
+          kids.push(pid+' 0 R');
+        }
+        if(imgs.length) objs[5+2*n]='<< /Type /XObject /Subtype /Image /Width 240 /Height 240 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length '+imgs[0].d.length+' >>\nstream\n'+imgs[0].d+'\nendstream';
+        objs[2]='<< /Type /Pages /Kids ['+kids.join(' ')+'] /Count '+n+' >>';
+        var out='%PDF-1.4\n', offs=[];
+        for(i=1;i<objs.length;i++){ offs[i]=out.length; out+=i+' 0 obj\n'+objs[i]+'\nendobj\n'; }
+        var xr=out.length;
+        out+='xref\n0 '+objs.length+'\n0000000000 65535 f \n';
+        for(i=1;i<objs.length;i++){ out+=String(offs[i]).padStart(10,'0')+' 00000 n \n'; }
+        out+='trailer\n<< /Size '+objs.length+' /Root 1 0 R >>\nstartxref\n'+xr+'\n%%EOF';
+        var bytes=new Uint8Array(out.length);
+        for(i=0;i<out.length;i++) bytes[i]=out.charCodeAt(i)&255;
+        return bytes;
+      }
+    };
+    return api;
+  }
+
+  function exportPdf(){
+    try{
+      var d=makePdf(), now=new Date(), stamp=iso(now);
+      var billed=sum(students.map(function(s){return s.billed;})), paid=sum(students.map(function(s){return s.paid;}));
+      var pdfInr=function(n){ return 'Rs. '+Number(n).toLocaleString('en-IN'); };
+      d.title('TuitionDesk data export', CENTRE+'  |  Generated '+now.toLocaleString('en-GB',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}));
+
+      d.h('1. Centre summary');
+      var soc=socialLinks().map(function(l){return l.label+': '+l.url;}).join(' ; ');
+      d.table([{t:'Item',w:150},{t:'Value',w:365}],[
+        ['Centre name',CENTRE],['Batches',BATCHES.map(bLabel).join(' ; ')],['UPI ID',UPI_ID],['Default test total',MAXM+' marks'],['Pass mark',PASSP+'% of test total'],
+        ['Centre WhatsApp',PHONE||'-'],['Referral offer',OFFER||'-'],['Social links',soc||'-'],
+        ['Students',students.length],['Total billed',pdfInr(billed)],['Collected',pdfInr(paid)],['Pending',pdfInr(billed-paid)],
+        ['Enquiries',enquiries.length],['Parent messages',queries.length]
+      ]);
+
+      d.h('2. Students and fees');
+      d.table([{t:'Student',w:105},{t:'Parent',w:80},{t:'Phone',w:70},{t:'Billed',w:55,a:'r'},{t:'Paid',w:55,a:'r'},{t:'Pending',w:55,a:'r'},{t:'Status',w:95}],
+        students.map(function(s){
+          var p=pend(s), st = p<=0 ? 'Paid' : s.dueAgo>0 ? s.dueAgo+' days late' : 'Due '+fmt(dueDate(s));
+          return [s.name,s.parent,s.phone,pdfInr(s.billed).replace('Rs. ','Rs.'),pdfInr(s.paid).replace('Rs. ','Rs.'),pdfInr(p).replace('Rs. ','Rs.'),st];
+        }));
+
+      d.h('3. Attendance','Classes before today plus today if saved. Date: '+fmt(TODAY));
+      d.table([{t:'Student',w:115},{t:'Attended',w:55,a:'r'},{t:'Classes',w:55,a:'r'},{t:'Percent',w:55,a:'r'},{t:'Today',w:235}],
+        students.map(function(s){
+          var c=attCount(s), pc=attPct(s);
+          var m=(s.bs||[]).map(function(bid){ var bb=batchById(bid); return bb ? bb.subject+': '+(mk(bid,s.id)==='A'?'Absent':'Present')+(state.savedB[bid]?'':' (not saved)') : ''; }).join('; ');
+          return [s.name,c[0],c[1],pc==null?'-':pc+'%',m||'-'];
+        }));
+
+      d.h('4. Test scores','Raw marks. Each test has its own total (see 4b). Blank means no score entered.');
+      var tc=[{t:'Student',w:125}]; testDates.forEach(function(dt){ tc.push({t:fmt(dt),w:50,a:'r'}); });
+      tc.push({t:'Average',w:45,a:'r'}); tc.push({t:'Rank',w:45,a:'r'});
+      var trows=students.map(function(s){
+        var got=s.scores.filter(function(x){return x!=null;}), r=rankOf(5,s.id);
+        return [s.name].concat(s.scores.map(function(x){return x==null?'':x;}),[got.length?(sum(got)/got.length).toFixed(1):'-', r==null?'-':r]);
+      });
+      var avgRow=['Class average'].concat(testDates.map(function(_,i){ var a=classAvg(i); return a==null?'':a.toFixed(1); }),['','']); avgRow.bold=true;
+      trows.push(avgRow);
+      d.table(tc,trows);
+
+      d.h('4b. Pass and fail by test','Pass mark is '+PASSP+'% of each test total.');
+      d.table([{t:'Test date',w:65},{t:'Subject',w:105},{t:'Total',w:45,a:'r'},{t:'Passed',w:50,a:'r'},{t:'Failed',w:50,a:'r'},{t:'No score',w:55,a:'r'},{t:'Failed students',w:145}],
+        testDates.map(function(dt,i){
+          var f=students.filter(function(x){return x.scores[i]!=null && !isPass(x.scores[i],i);});
+          return [fmt(dt), tsub(i), tmax(i), students.filter(function(x){return isPass(x.scores[i],i);}).length, f.length, students.filter(function(x){return x.scores[i]==null;}).length, f.map(function(x){return x.name.split(' ')[0];}).join(', ')||'-'];
+        }));
+
+      d.h('5. Homework');
+      d.table([{t:'#',w:30},{t:'Title',w:330},{t:'Due',w:155}],
+        homework.map(function(h,i){ var dd=addDays(TODAY,h.dueIn); return [i+1,h.title,fmt(dd)+(h.dueIn<0?' (past)':'')]; }));
+      d.gap(8);
+      var CW=515, nh=Math.max(1,homework.length), hw=Math.floor((CW-215)/nh), hc=[{t:"Student",w:CW-hw*nh}];
+      homework.forEach(function(_,i){ hc.push({t:'HW '+(i+1),w:hw}); });
+      d.table(hc, students.map(function(s){ return [s.name].concat(homework.map(function(_,i){ return s.hw[i]===1?'Submitted':'Pending'; })); }));
+
+      d.h('6. Referral enquiries');
+      d.table([{t:'Child',w:100},{t:'Class',w:55},{t:'Referred by',w:95},{t:'Phone',w:70},{t:'Status',w:65},{t:'Added',w:60},{t:'Reward',w:70}],
+        enquiries.map(function(e){
+          return [e.name,e.cls,e.by||'Walk-in',e.phone,e.status,e.ago===0?'Today':e.ago+' days ago', e.by ? (e.rewarded?'Given':(e.status==='Joined'?'Due':'-')) : '-'];
+        }));
+
+      d.h('7. Parent queries and replies');
+      var any=false;
+      students.forEach(function(s){
+        var th=thread(s.id); if(!th.length) return; any=true;
+        d.p(s.name+' ('+s.parent+', '+s.phone+')',10,true);
+        th.forEach(function(q){
+          var when=new Date(q.ts).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+          d.p('['+(q.from==='parent'?'Parent':'Centre')+', '+when+'] '+q.text,9);
+        });
+        d.gap(6);
+      });
+      if(!any) d.p('No queries yet.',9);
+
+      d.h('8. Quick reply templates');
+      if(templates.length) templates.forEach(function(t,i){ d.p((i+1)+'. '+t,9); }); else d.p('None.',9);
+
+      d.gap(10);
+      d.p('The app PIN and logo are not included in this export. Non-English characters appear as ? in PDF text.',8.5);
+
+      var bytes=d.finish(CENTRE+' | TuitionDesk data export');
+      var name='TuitionDesk-data-'+stamp+'.pdf'; dlPdf(bytes,name);
+      toast('PDF ready: '+name);
+    }catch(err){ toast('Could not make the PDF. Please try again.'); }
+  }
+  function dlPdf(bytes,name){
+    var blob=new Blob([bytes],{type:'application/pdf'}), url=URL.createObjectURL(blob);
+    var a=document.createElement('a'); a.href=url; a.download=name; a.rel='noopener'; document.body.appendChild(a); a.click();
+    setTimeout(function(){ if(a.parentNode) a.parentNode.removeChild(a); URL.revokeObjectURL(url); }, 8000);
+  }
+  function exportStudentPdf(id){
+    try{
+      var s=byId(id); if(!s){ toast('Student not found'); return; }
+      var d=makePdf(), now=new Date(), R=function(n){ return 'Rs.'+Number(n).toLocaleString('en-IN'); };
+      d.title(s.name+' - full history', CENTRE+'  |  Generated '+now.toLocaleString('en-GB',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}));
+
+      if(s.photo){ d.photo(s.photo,64); d.gap(26); }
+      var p=pend(s), st = p<=0 ? 'Paid' : s.dueAgo>0 ? p>0 && s.paid>0 ? 'Part paid, '+s.dueAgo+' days late' : s.dueAgo+' days late' : 'Due '+fmt(dueDate(s));
+      d.h('1. Student details');
+      d.table([{t:'Item',w:150},{t:'Value',w:365}],[
+        ['Student',s.name],['Parent',s.parent],['Parent WhatsApp','+91 '+s.phone],['Batches',sBatchText(s)]]);
+
+      d.h('2. Fees','Current billing cycle. Due date '+fmt(dueDate(s))+'.');
+      d.table([{t:'Billed',w:105,a:'r'},{t:'Paid',w:105,a:'r'},{t:'Pending',w:105,a:'r'},{t:'Status',w:200}],[[R(s.billed),R(s.paid),R(p),st]]);
+
+      var c=attCount(s), pc=attPct(s);
+      d.h('3. Attendance');
+      d.table([{t:'Classes attended',w:150,a:'r'},{t:'Total classes',w:150,a:'r'},{t:'Percent',w:215,a:'r'}],[[c[0],c[1],pc==null?'-':pc+'%']]);
+
+      d.h('4. Test history','Each test has its own total. Pass mark is '+PASSP+'% of the total. Rank is among students with a score that test.');
+      var rows=[], got=[], np2=0, nf2=0;
+      testDates.forEach(function(dt,i){
+        var v=s.scores[i], av=classAvg(i), r=rankOf(i,s.id);
+        if(v!=null){ got.push(v); if(isPass(v,i)) np2++; else nf2++; }
+        rows.push([fmt(dt), tsub(i), v==null?'-':v+'/'+tmax(i), v==null?'-':Math.round(100*v/tmax(i))+'%', av==null?'-':av.toFixed(1), r==null?'-':r+' of '+scored(i).length,
+          (v!=null && i>0 && s.scores[i-1]!=null) ? ((v-s.scores[i-1]>=0?'+':'-')+Math.abs(v-s.scores[i-1])) : '-', resultOf(v,i)]);
+      });
+      d.table([{t:'Test date',w:62},{t:'Subject',w:95},{t:'Score',w:55,a:'r'},{t:'Percent',w:55,a:'r'},{t:'Class avg',w:60,a:'r'},{t:'Rank',w:65,a:'r'},{t:'Change',w:55,a:'r'},{t:'Result',w:68}],rows);
+      if(got.length){ d.gap(6); d.p('Average: '+(sum(got)/got.length).toFixed(1)+'   Best: '+Math.max.apply(null,got)+'   Lowest: '+Math.min.apply(null,got)+'   Tests with a score: '+got.length+' of '+testDates.length+'   Passed: '+np2+'   Failed: '+nf2,9.5,true); }
+
+      d.h('5. Homework');
+      d.table([{t:'#',w:30},{t:'Title',w:290},{t:'Due',w:105},{t:'Status',w:90}],
+        homework.map(function(h,i){ return [i+1,h.title,fmt(addDays(TODAY,h.dueIn)), s.hw[i]===1?'Submitted':(h.dueIn<0?'Overdue':'Pending')]; }));
+
+      var refs=enquiries.filter(function(e){return e.by===s.name;});
+      d.h('6. Friends referred');
+      d.table([{t:'Child',w:130},{t:'Class',w:70},{t:'Status',w:90},{t:'Added',w:105},{t:'Reward',w:120}],
+        refs.map(function(e){ return [e.name,e.cls,e.status,e.ago===0?'Today':e.ago+' days ago',e.status==='Joined'?(e.rewarded?'Given':'Due'):'-']; }));
+
+      d.h('7. Messages with the centre');
+      var th=thread(s.id);
+      if(!th.length) d.p('No messages yet.',9);
+      th.forEach(function(q){
+        var when=new Date(q.ts).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+        d.p('['+(q.from==='parent'?'Parent':'Centre')+', '+when+'] '+q.text,9);
+      });
+
+      var bytes=d.finish(CENTRE+' | '+s.name+' history');
+      var nm=s.name.replace(/[^A-Za-z0-9]+/g,'-').replace(/^-|-$/g,'')||'student';
+      dlPdf(bytes,'TuitionDesk-'+nm+'-history-'+iso(now)+'.pdf');
+      toast('PDF ready for '+s.name);
+    }catch(err){ toast('Could not make the PDF. Please try again.'); }
+  }
+  var bulkBusy = false;
+  function exportEach(){
+    if(bulkBusy) return;
+    var ids = students.map(function(s){return s.id;}), i = 0, n = ids.length;
+    if(!n){ toast('No students to download'); return; }
+    bulkBusy = true;
+    var bt = document.getElementById('export-each-btn'); if(bt) bt.disabled = true;
+    (function next(){
+      if(i>=n){
+        bulkBusy = false; var b2=document.getElementById('export-each-btn'); if(b2) b2.disabled = !students.length;
+        toast('Done. '+n+' student PDF'+(n===1?'':'s')+' downloaded.'); return;
+      }
+      toast('Downloading '+(i+1)+' of '+n+'...');
+      exportStudentPdf(ids[i]); i++;
+      setTimeout(next, 900);
+    })();
+  }
+  function exportCard(){
+    return '<div><div class="label" style="margin:2px 2px 8px">Export data</div><div class="card">'+
+      '<p class="note" style="margin:0 0 12px">Download everything stored on this phone as one PDF: centre details, students and fees, attendance, test scores, homework, enquiries, parent queries and quick replies. Keep it as a backup or share it with your accountant. For one student, use History PDF in the Students list below.</p>'+
+      '<button class="btn primary block" id="export-btn" data-act="export-pdf">Download all data (PDF)</button>'+
+      '<button class="btn block" style="margin-top:8px" id="export-each-btn" data-act="export-each"'+(students.length?'':' disabled')+'>Download every student, one by one ('+students.length+' PDFs)</button>'+
+      '<p class="note" style="margin-top:8px">Makes one history PDF per student, each with their photo, fees, attendance, subject-wise test marks with totals and pass or fail, homework and messages. If your phone asks, allow multiple downloads.</p>'+
+      '<p class="note" style="margin-top:10px">The app PIN is never included. The file is saved in your phone’s Downloads.</p></div></div>';
+  }
+
+  // ---- App lock: developer lock (lock.json) and owner PIN ----
+  var LOCK_URL = 'lock.json'; // the developer edits this file on the website that hosts the app
+  var LOCK_KEY = 'tuitiondesk-lock', PIN_KEY = 'tuitiondesk-pin';
+  var devLock = {locked:false, message:'', contact:''};
+  var pinRequired = false, pinFails = 0, pinWaitUntil = 0, hiddenAt = 0, lastMode = '', forgotOpen = false;
+  var LOCKSVG = '<svg class="lk" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
+
+  function evalLock(cfg){
+    var locked = !!(cfg && cfg.locked===true);
+    if(cfg && typeof cfg.expires==='string' && cfg.expires){
+      var ex = new Date(cfg.expires+'T23:59:59');
+      if(!isNaN(ex.getTime()) && Date.now()>ex.getTime()) locked = true;
+    }
+    var msg = (cfg && typeof cfg.message==='string' && cfg.message.trim()) ? cfg.message.trim().slice(0,300) : 'This app is locked. Please contact your developer to unlock it.';
+    var c = (cfg && /^\d{10}$/.test(String(cfg.contact||''))) ? String(cfg.contact) : '';
+    devLock = {locked:locked, message:msg, contact:c};
+  }
+  function readCached(){ try{ return JSON.parse(localStorage.getItem(LOCK_KEY)||'null'); }catch(e){ return null; } }
+  function checkLock(){
+    if(typeof fetch!=='function') return Promise.resolve('offline');
+    return fetch(LOCK_URL+'?t='+Date.now(), {cache:'no-store'}).then(function(r){
+      if(r.status===404){ try{ localStorage.removeItem(LOCK_KEY); }catch(e){} evalLock(null); return 'ok'; }
+      if(!r.ok) throw new Error('bad');
+      return r.json().then(function(cfg){ try{ localStorage.setItem(LOCK_KEY, JSON.stringify(cfg)); }catch(e){} evalLock(cfg); return 'ok'; });
+    }).catch(function(){ return 'offline'; }).then(function(res){ refreshLockUI(); return res; });
+  }
+  function getPin(){ try{ return JSON.parse(localStorage.getItem(PIN_KEY)||'null'); }catch(e){ return null; } }
+  function cyrb(str){
+    var h1=0xdeadbeef, h2=0x41c6ce57, i, ch;
+    for(i=0;i<str.length;i++){ ch=str.charCodeAt(i); h1=Math.imul(h1^ch,2654435761); h2=Math.imul(h2^ch,1597334677); }
+    h1=Math.imul(h1^(h1>>>16),2246822507)^Math.imul(h2^(h2>>>13),3266489909);
+    h2=Math.imul(h2^(h2>>>16),2246822507)^Math.imul(h1^(h1>>>13),3266489909);
+    return String(4294967296*(2097151&h2)+(h1>>>0));
+  }
+  function hasSubtle(){ return !!(window.crypto && window.crypto.subtle && window.TextEncoder); }
+  function hashWith(m,str){
+    if(m==='s'){
+      if(!hasSubtle()) return Promise.resolve(null);
+      return window.crypto.subtle.digest('SHA-256', new TextEncoder().encode(str)).then(function(b){
+        return Array.prototype.map.call(new Uint8Array(b), function(x){ return ('0'+x.toString(16)).slice(-2); }).join('');
+      });
+    }
+    return Promise.resolve(cyrb(str));
+  }
+  function verifyPin(pin){
+    var rec=getPin(); if(!rec) return Promise.resolve(true);
+    return hashWith(rec.m, rec.salt+pin).then(function(h){ return h!==null && h===rec.h; });
+  }
+  function setPin(pin){
+    var salt=String(Math.random()).slice(2)+String(Date.now()), m=hasSubtle()?'s':'c';
+    return hashWith(m, salt+pin).then(function(h){
+      try{ localStorage.setItem(PIN_KEY, JSON.stringify({salt:salt, h:h, m:m})); return true; }catch(e){ return false; }
+    });
+  }
+  function devHtml(){
+    return '<div class="lockbox">'+LOCKSVG+'<h1>App locked</h1><p style="margin:0;overflow-wrap:anywhere">'+esc(devLock.message)+'</p>'+
+      (devLock.contact ? '<a class="btn primary block" href="'+esc(wa(devLock.contact,'Hello, my app '+CENTRE+' (TuitionDesk) is locked. Please help.'))+'" target="_blank" rel="noopener">Contact developer on WhatsApp</a>' : '')+
+      '<button class="btn block" data-act="lock-check">Check again</button><p class="note" id="lockNote" role="status"></p></div>';
+  }
+  function pinHtml(){
+    if(forgotOpen){
+      return '<div class="lockbox">'+LOCKSVG+'<h1>Forgot PIN?</h1><p style="margin:0">The only way in is to erase all data on this phone (students, fees, scores) and start again. This cannot be undone.</p>'+
+        '<button class="btn dangerfill block" data-act="pin-reset">Erase all data and reset</button><button class="btn block" data-act="pin-forgot-cancel">Back</button></div>';
+    }
+    return '<div class="lockbox">'+LOCKSVG+'<h1>Enter PIN</h1><label class="note" for="lockPin">Enter your 4-digit PIN to open '+esc(CENTRE)+'.</label>'+
+      '<input id="lockPin" type="password" inputmode="numeric" maxlength="4" autocomplete="off" aria-describedby="lockErr">'+
+      '<p class="err" id="lockErr" role="alert"></p><button class="btn primary block" data-act="pin-unlock">Unlock</button>'+
+      '<button class="btn link" data-act="pin-forgot">Forgot PIN?</button></div>';
+  }
+  // ---- Email account (register and login) ----
+  var ACCT_KEY = 'tuitiondesk-acct', SESS_KEY = 'tuitiondesk-sess';
+  var authOk = false, authForgot = false, authNew = false;
+  function getAcct(){ try{ return JSON.parse(localStorage.getItem(ACCT_KEY)||'null'); }catch(e){ return null; } }
+  function sessionValid(){ var a=getAcct(); try{ return !!a && localStorage.getItem(SESS_KEY)===a.email; }catch(e){ return false; } }
+  function authHtml(){
+    var a=getAcct(), st='text-align:left;font-size:16px;letter-spacing:0';
+    if(a && authForgot){
+      return '<div class="lockbox">'+LOCKSVG+'<h1>Forgot password?</h1><p style="margin:0">The only way in is to erase all data on this phone and start again. If you backed up to your Google account, register again and use Restore from Google.</p>'+
+        '<button class="btn dangerfill block" data-act="auth-reset">Erase data on this phone</button><button class="btn block" data-act="auth-forgot-cancel">Back</button></div>';
+    }
+    if(a && authNew){
+      return '<div class="lockbox">'+LOCKSVG+'<h1>Create new account</h1><p style="margin:0">A new account starts a fresh app. All data on this phone (students, fees, scores) and the current login <b style="overflow-wrap:anywhere">'+esc(a.email)+'</b> will be erased. Data already backed up to Google stays there. This cannot be undone.</p>'+
+        '<button class="btn dangerfill block" data-act="auth-reset">Erase and create new account</button><button class="btn block" data-act="auth-new-cancel">Back to login</button></div>';
+    }
+    if(a && a.google){
+      return '<div class="lockbox">'+LOCKSVG+'<h1>Director login</h1><p class="note" style="overflow-wrap:anywhere">'+esc(a.email)+'</p>'+
+        '<p class="err" id="auErr" role="alert"></p>'+googleBlock(false)+
+        '<button class="btn link" data-act="auth-new">Create new account</button></div>';
+    }
+    if(a){
+      return '<div class="lockbox">'+LOCKSVG+'<h1>Login</h1><p class="note" style="overflow-wrap:anywhere">'+esc(a.email)+'</p>'+
+        '<form id="authForm" data-mode="login" novalidate style="display:flex;flex-direction:column;gap:12px">'+
+        '<input id="auPw" type="password" autocomplete="current-password" placeholder="Password" aria-label="Password" style="'+st+'">'+
+        '<p class="err" id="auErr" role="alert"></p><button type="submit" class="btn primary block">Login</button></form>'+
+        googleBlock(true)+
+        '<div style="display:flex;justify-content:center;gap:8px;flex-wrap:wrap"><button class="btn link" data-act="auth-forgot">Forgot password?</button><button class="btn link" data-act="auth-new">Create new account</button></div></div>';
+    }
+    return '<div class="lockbox">'+LOCKSVG+'<h1>Create account</h1><p class="note">Director sign in with Google, or register with your email to protect '+esc(CENTRE)+'.</p>'+
+      googleBlock(false)+
+      '<form id="authForm" data-mode="register" novalidate style="display:flex;flex-direction:column;gap:12px">'+
+      '<input id="auEm" type="email" autocomplete="email" autocapitalize="none" placeholder="Email" aria-label="Email" style="'+st+'">'+
+      '<input id="auPw" type="password" autocomplete="new-password" placeholder="Password (6 or more characters)" aria-label="Password" style="'+st+'">'+
+      '<input id="auPw2" type="password" autocomplete="new-password" placeholder="Confirm password" aria-label="Confirm password" style="'+st+'">'+
+      '<p class="err" id="auErr" role="alert"></p><button type="submit" class="btn primary block">Register</button></form></div>';
+  }
+  function googleBlock(divider){
+    var st='text-align:left;font-size:16px;letter-spacing:0', top=divider?'<p class="note" style="margin:0">or</p>':'';
+    if(GCLIENT){
+      return top+'<button type="button" class="btn block" data-act="auth-google" style="gap:10px"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="#4285F4" d="M22 12.2c0-.7-.1-1.4-.2-2H12v3.8h5.6a4.8 4.8 0 0 1-2.1 3.1v2.6h3.4c2-1.8 3.1-4.5 3.1-7.5z"/><path fill="#34A853" d="M12 22c2.8 0 5.2-.9 6.9-2.5l-3.4-2.6c-.9.6-2.1 1-3.5 1-2.7 0-5-1.8-5.8-4.3H2.7v2.7A10 10 0 0 0 12 22z"/><path fill="#FBBC05" d="M6.2 13.6a6 6 0 0 1 0-3.8V7.1H2.7a10 10 0 0 0 0 9.2z"/><path fill="#EA4335" d="M12 6c1.5 0 2.9.5 4 1.5l3-3A10 10 0 0 0 2.7 7.1l3.5 2.7C7 7.800 9.300 6 12 6z"/></svg>Continue with Google</button>';
+    }
+    return top+'<input id="auCid" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Google Client ID (xxxx.apps.googleusercontent.com)" aria-label="Google Client ID" style="'+st+'">'+
+      '<button type="button" class="btn block" data-act="auth-cid">Save Client ID to enable Google login</button>'+gGuideHtml();
+  }
+  function authGoogle(){
+    function fail(m){ var e=document.getElementById('auErr'); if(e) e.textContent=m; }
+    function go(){
+      try{
+        var c=google.accounts.oauth2.initTokenClient({client_id:GCLIENT, scope:G_SCOPE,
+          callback:function(resp){
+            if(!resp || resp.error || !resp.access_token){ fail('Google sign-in failed or was cancelled.'); return; }
+            var tok=resp.access_token, exp=Date.now()+((Number(resp.expires_in)||3600)-60)*1000;
+            fetch('https://www.googleapis.com/oauth2/v3/userinfo',{headers:{Authorization:'Bearer '+tok}})
+              .then(function(r){ if(!r.ok) throw new Error('x'); return r.json(); })
+              .then(function(u){
+                var em=String(u.email||'').toLowerCase(); if(!em) throw new Error('x');
+                var a=getAcct();
+                if(a && a.email!==em){ fail('This app belongs to '+a.email+'. Sign in with that Google account.'); return; }
+                try{ if(!a) localStorage.setItem(ACCT_KEY, JSON.stringify({email:em, google:true})); localStorage.setItem(SESS_KEY, em); }
+                catch(x){ fail('Could not save the login on this device.'); return; }
+                gToken=tok; gTokenExp=exp; gEmail=em;
+                authOk=true; pinRequired=false; authForgot=false; lastMode=''; refreshLockUI(); render(); toast('Signed in with Google'); gAfterConnect();
+              }).catch(function(){ fail('Could not read your Google account. Try again.'); });
+          },
+          error_callback:function(){ fail('Google sign-in was closed.'); }});
+        c.requestAccessToken({prompt:'select_account'});
+      }catch(e){ fail('Could not start Google sign-in.'); }
+    }
+    if(gReady()){ go(); }
+    else { fail('Loading Google...'); gLoadLib().then(function(){ fail('Google is ready. Tap Continue with Google again.'); }).catch(function(){ fail('Could not load Google. Check your internet.'); }); }
+  }
+  function doAuth(form){
+    var mode=form.getAttribute('data-mode'), err=document.getElementById('auErr'), pw=document.getElementById('auPw').value;
+    function ok(msg){ authOk=true; pinRequired=false; authForgot=false; lastMode=''; refreshLockUI(); render(); toast(msg); }
+    if(mode==='register'){
+      var em=document.getElementById('auEm').value.trim().toLowerCase(), pw2=document.getElementById('auPw2').value;
+      if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(em)){ err.textContent='Enter a valid email address.'; return; }
+      if(pw.length<6){ err.textContent='Password must be at least 6 characters.'; return; }
+      if(pw!==pw2){ err.textContent='The two passwords do not match.'; return; }
+      var salt=String(Math.random()).slice(2)+String(Date.now()), m=hasSubtle()?'s':'c';
+      hashWith(m,salt+pw).then(function(h){
+        try{ localStorage.setItem(ACCT_KEY, JSON.stringify({email:em, salt:salt, h:h, m:m})); localStorage.setItem(SESS_KEY, em); }
+        catch(x){ err.textContent='Could not save the account on this device.'; return; }
+        ok('Account created');
+      });
+    } else {
+      var a=getAcct(); if(!a) return;
+      hashWith(a.m,a.salt+pw).then(function(h){
+        if(h!==null && h===a.h){ try{ localStorage.setItem(SESS_KEY, a.email); }catch(x){} ok('Welcome back'); }
+        else { err.textContent='Wrong password.'; document.getElementById('auPw').value=''; }
+      });
+    }
+  }
+  function lockMode(){ return devLock.locked ? 'dev' : (!authOk ? 'auth' : (pinRequired ? 'pin' : '')); }
+
+  // ---- Google account storage (Google Drive, private app data folder) ----
+  var gToken=null, gTokenExp=0, gEmail='', gStat='', gAuto=false, gRemote=null, gTimer=null, gClient=null, G_FILE='tuitiondesk-data.json';
+  var G_SCOPE='https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/userinfo.email';
+  function gReady(){ return !!(window.google && google.accounts && google.accounts.oauth2); }
+  function gLoadLib(){
+    return new Promise(function(res,rej){
+      if(gReady()){ res(); return; }
+      var s=document.createElement('script'); s.src='https://accounts.google.com/gsi/client'; s.async=true;
+      s.onload=function(){ res(); }; s.onerror=function(){ rej(new Error('lib')); }; document.head.appendChild(s);
+    });
+  }
+  function gOk(){ return !!gToken && Date.now()<gTokenExp; }
+  function gSetStat(t){ gStat=t; var el=document.getElementById('gStat'); if(el) el.textContent=t; }
+  function gFetch(url,opt){
+    opt=opt||{}; opt.headers=Object.assign({Authorization:'Bearer '+gToken}, opt.headers||{});
+    return fetch(url,opt).then(function(r){
+      if(r.status===401){ gToken=null; throw new Error('expired'); }
+      if(!r.ok) throw new Error('http '+r.status);
+      return r;
+    });
+  }
+  function gFind(){
+    return gFetch('https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q='+encodeURIComponent("name='"+G_FILE+"'")+'&fields=files(id,modifiedTime)')
+      .then(function(r){ return r.json(); }).then(function(j){ return (j.files && j.files[0]) || null; });
+  }
+  function gPush(){
+    if(!gOk()) return Promise.reject(new Error('expired'));
+    var body=JSON.stringify(snapshot());
+    return gFind().then(function(f){
+      var b='tdb'+Date.now(), meta=f?{}:{name:G_FILE, parents:['appDataFolder']};
+      var mp='--'+b+'\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n'+JSON.stringify(meta)+'\r\n--'+b+'\r\nContent-Type: application/json\r\n\r\n'+body+'\r\n--'+b+'--';
+      return gFetch('https://www.googleapis.com/upload/drive/v3/files'+(f?'/'+f.id:'')+'?uploadType=multipart&fields=id,modifiedTime',
+        {method:f?'PATCH':'POST', headers:{'Content-Type':'multipart/related; boundary='+b}, body:mp});
+    }).then(function(r){ return r.json(); }).then(function(j){ gRemote={id:j.id, modifiedTime:j.modifiedTime}; });
+  }
+  function gTime(iso){ var d=new Date(iso); return isNaN(d.getTime()) ? '' : d.toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}); }
+  function gErr(e){ return (e && e.message==='expired') ? 'Google session ended. Tap Reconnect.' : 'Google sync failed. Check internet and try again.'; }
+  function cloudQueue(){
+    if(!gAuto) return;
+    if(!gOk()){ gSetStat('Google session ended. Tap Reconnect to continue backup.'); return; }
+    clearTimeout(gTimer);
+    gTimer=setTimeout(function(){
+      gPush().then(function(){ gSetStat('Backed up to Google at '+gTime(gRemote.modifiedTime)+'.'); })
+        .catch(function(e){ gSetStat(gErr(e)); });
+    }, 4000);
+  }
+  function gAfterConnect(){
+    gSetStat('Checking your Google account...');
+    gFetch('https://www.googleapis.com/oauth2/v3/userinfo').then(function(r){ return r.json(); }).then(function(u){ gEmail=u.email||''; }).catch(function(){})
+      .then(function(){ return gFind(); })
+      .then(function(f){
+        if(!f){ return gPush().then(function(){ gAuto=true; gStat='First backup done at '+gTime(gRemote.modifiedTime)+'. Auto backup is on.'; render(); }); }
+        gRemote=f; gAuto=false;
+        gStat='A backup from '+gTime(f.modifiedTime)+' is already in this Google account. Choose Restore to load it, or Back up now to replace it with this phone\u2019s data.'; render();
+      })
+      .catch(function(e){ gStat=gErr(e); render(); });
+  }
+  function gConnect(){
+    if(!GCLIENT){ toast('First save your Google Client ID.'); return; }
+    function go(){
+      try{
+        gClient=google.accounts.oauth2.initTokenClient({client_id:GCLIENT, scope:G_SCOPE,
+          callback:function(resp){
+            if(!resp || resp.error || !resp.access_token){ gStat='Google sign-in failed or was cancelled.'; render(); return; }
+            gToken=resp.access_token; gTokenExp=Date.now()+((Number(resp.expires_in)||3600)-60)*1000; gAfterConnect();
+          },
+          error_callback:function(){ gStat='Google sign-in was closed.'; render(); }});
+        gClient.requestAccessToken({prompt: gEmail ? '' : 'consent'});
+      }catch(e){ gStat='Could not start Google sign-in.'; render(); }
+    }
+    if(gReady()){ go(); } else { gStat='Loading Google...'; render(); gLoadLib().then(function(){ toast('Google is ready. Tap Connect again.'); gStat=''; render(); }).catch(function(){ gStat='Could not load Google. Check your internet.'; render(); }); }
+  }
+  function gPull(){
+    if(!gOk()){ toast('Connect Google first.'); return; }
+    if(!window.confirm('Replace all data on this phone with the Google backup?')) return;
+    gSetStat('Restoring...');
+    gFind().then(function(f){
+      if(!f) throw new Error('none');
+      return gFetch('https://www.googleapis.com/drive/v3/files/'+f.id+'?alt=media');
+    }).then(function(r){ return r.json(); }).then(function(d){
+      if(!d || !d.students) throw new Error('bad');
+      localStorage.setItem(KEY, JSON.stringify(d)); location.reload();
+    }).catch(function(e){ gSetStat(e && e.message==='none' ? 'No backup found in this Google account yet.' : (e && e.message==='bad' ? 'The backup file is not valid.' : gErr(e))); });
+  }
+  function gGuideHtml(){
+    var o=location.origin, okHost=(location.protocol==='https:' || location.hostname==='localhost' || location.hostname==='127.0.0.1');
+    var link=function(u,t){ return '<a href="'+u+'" target="_blank" rel="noopener" style="color:var(--accent);font-weight:600">'+t+'</a>'; };
+    var originRow = okHost
+      ? '<div style="display:flex;align-items:center;gap:8px;margin:6px 0"><span class="upi" style="flex:1;min-width:0">'+esc(o)+'</span><button type="button" class="btn sm" data-act="g-copy" data-v="origin">Copy</button></div>'
+      : '<p class="err" style="margin:6px 0">This app is opened from '+esc(o==='null'?'a local file':o)+'. Host it on an https website first, then open that link and this guide will show the exact address to copy.</p>';
+    return '<details style="margin-top:12px;text-align:left"><summary style="cursor:pointer;font-weight:600;min-height:36px;display:flex;align-items:center">Google setup guide (auto-generated for this app)</summary>'+
+      '<div style="font-size:13px;color:var(--muted);line-height:1.5;padding:4px 0 0">'+
+      '<p style="margin:6px 0"><b style="color:var(--fg)">What you need:</b> a free Google Cloud project, the Drive API turned on, and one OAuth Client ID.</p>'+
+      '<ol style="margin:6px 0;padding-left:18px;display:grid;gap:8px">'+
+      '<li>Open '+link('https://console.cloud.google.com/projectcreate','Create a Google Cloud project')+' and give it any name, for example <b>TuitionDesk</b>.</li>'+
+      '<li>Turn on the API: open '+link('https://console.cloud.google.com/apis/library/drive.googleapis.com','Google Drive API')+' and tap <b>Enable</b>.</li>'+
+      '<li>Open '+link('https://console.cloud.google.com/auth/overview','Google Auth platform')+'. Set app name to <b>'+esc(CENTRE)+'</b>, choose <b>External</b>, and add your support email.</li>'+
+      '<li>Under <b>Audience</b>, add your own Gmail (the director) as a <b>Test user</b>. Only test users can sign in until you publish the app.</li>'+
+      '<li>Under <b>Data Access</b>, add the scopes <b>drive.appdata</b> and <b>userinfo.email</b>. Both are low risk, Drive access stays inside a private app folder.</li>'+
+      '<li>Open '+link('https://console.cloud.google.com/apis/credentials','Credentials')+' > <b>Create credentials</b> > <b>OAuth client ID</b> > type <b>Web application</b>.</li>'+
+      '<li>In <b>Authorized JavaScript origins</b> add exactly this address (no slash at the end):'+originRow+'</li>'+
+      '<li>Tap <b>Create</b>, copy the <b>Client ID</b> (ends with <b>.apps.googleusercontent.com</b>) and paste it in the box here. Tap <b>Save Client ID</b>.</li>'+
+      '<li>Tap <b>Continue with Google</b> or <b>Connect Google account</b> and allow access.</li></ol>'+
+      '<p style="margin:6px 0"><b style="color:var(--fg)">Change later:</b> paste a different Client ID and save, or tap <b>Remove Client ID</b>. Use your own Client ID so Google sign-in is tied to your centre, not to anyone else.</p>'+
+      '<p style="margin:6px 0"><b style="color:var(--fg)">If sign-in fails:</b> <b>Error 400 origin_mismatch</b> means the address in step 7 does not match this page. <b>Access blocked</b> means your Gmail is not added as a test user. A popup that does not open means the browser blocked it, so allow popups for this site.</p>'+
+      '<p style="margin:6px 0"><b style="color:var(--fg)">Privacy:</b> the app can only see its own hidden backup file in your Drive, not your other files.</p>'+
+      '</div></details>';
+  }
+  function cloudCard(){
+    var a=getAcct(), on=gOk();
+    var head='<div class="label" style="margin:2px 2px 8px">Account and Google storage</div>';
+    var acct='<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px"><div style="min-width:0"><div class="meta">Logged in as</div><div class="name" style="overflow-wrap:anywhere">'+esc(a?a.email:'-')+'</div></div><button class="btn sm danger" data-act="auth-logout">Log out</button></div>';
+    var body;
+    if(!GCLIENT){
+      body='<p class="note" style="margin-bottom:10px">Store all app data in your own Google account (private Google Drive app folder). Google connection is not set up yet. Paste the Google OAuth Client ID once below, then connect.</p>';
+    } else {
+      body='<div class="meta" style="margin-bottom:8px">Google: <b>'+(on ? esc(gEmail||'connected') : 'not connected')+'</b>'+(gAuto&&on?' \u00B7 auto backup on':'')+'</div>'+
+        '<div style="display:flex;flex-direction:column;gap:8px">'+
+        (on ? '<button class="btn primary block" data-act="g-push">Back up now</button><button class="btn block" data-act="g-pull">Restore from Google</button><button class="btn block" data-act="g-off">Disconnect Google</button>'
+            : '<button class="btn primary block" data-act="g-connect">'+(gRemote||gEmail?'Reconnect Google account':'Connect Google account')+'</button>')+'</div>';
+    }
+    body+='<p class="note" id="gStat" role="status" style="margin-top:10px">'+esc(gStat)+'</p>'+
+      (GCLIENT&&GCLIENT===DEFAULT_GCLIENT&&DEFAULT_GCLIENT ? '<details style="margin-top:12px"><summary style="cursor:pointer;font-weight:600;min-height:36px;display:flex;align-items:center">Advanced: use my own Client ID</summary>' : '<div>')+'<div class="field" style="margin-top:12px"><label class="label" for="gCid">Google OAuth Client ID</label><input id="gCid" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="xxxx.apps.googleusercontent.com" value="'+esc(GCLIENT)+'"></div>'+
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><button class="btn sm primary" data-act="g-saveid">Save Client ID</button>'+(GCLIENT?'<button class="btn sm danger" data-act="g-clearid">Remove Client ID</button>':'')+'</div>'+gGuideHtml()+(GCLIENT&&GCLIENT===DEFAULT_GCLIENT&&DEFAULT_GCLIENT ? '</details>' : '</div>')+
+      '<p class="note" style="margin-top:10px">Data is saved on this phone first. Once Google is connected, every change is backed up automatically. Google sign-in lasts about an hour, so reconnect when asked. Your email password and PIN are never uploaded.</p>';
+    return '<div>'+head+'<div class="card">'+acct+body+'</div></div>';
+  }
+  function refreshLockUI(){
+    var m=lockMode(), scr=document.getElementById('lockscr'), wrap=document.querySelector('.wrap'), tb=document.getElementById('tabbar');
+    if(!m){ scr.hidden=true; scr.innerHTML=''; if(wrap) wrap.inert=false; tb.inert=false; lastMode=''; return; }
+    if(state.sheet) closeSheet();
+    if(wrap) wrap.inert=true; tb.inert=true; scr.hidden=false;
+    if(m!==lastMode){
+      scr.innerHTML = m==='dev' ? devHtml() : (m==='auth' ? authHtml() : pinHtml()); lastMode=m;
+      var f=scr.querySelector && scr.querySelector('input,button'); if(f && f.focus) f.focus();
+    }
+  }
+  function tryUnlock(){
+    var inp=document.getElementById('lockPin'), err=document.getElementById('lockErr'); if(!inp) return;
+    if(Date.now()<pinWaitUntil){ err.textContent='Too many wrong tries. Wait '+Math.ceil((pinWaitUntil-Date.now())/1000)+' seconds.'; return; }
+    verifyPin(inp.value.trim()).then(function(ok){
+      if(ok){ pinRequired=false; pinFails=0; forgotOpen=false; refreshLockUI(); render(); return; }
+      pinFails++; inp.value='';
+      if(pinFails>=5){ pinWaitUntil=Date.now()+30000; pinFails=0; err.textContent='Too many wrong tries. Wait 30 seconds.'; }
+      else { err.textContent='Wrong PIN. '+(5-pinFails)+' '+(5-pinFails===1?'try':'tries')+' left.'; }
+    });
+  }
+  function lockCard(){
+    var on=!!getPin();
+    return '<div><div class="label" style="margin:2px 2px 8px">App lock</div><div class="card"><p class="note" style="margin:0 0 12px">'+
+      (on?'PIN lock is on. The app asks for the PIN when you reopen it or come back after 30 seconds away.':'Turn on a 4-digit PIN so only you can open this app on this phone.')+'</p>'+
+      (on?'<div class="field" style="margin-bottom:10px"><label class="label" for="pinCur">Current PIN</label><input id="pinCur" type="password" inputmode="numeric" maxlength="4" autocomplete="off"></div>':'')+
+      '<div class="field"><label class="label" for="pinNew">'+(on?'New PIN (only to change it)':'Choose a 4-digit PIN')+'</label><input id="pinNew" type="password" inputmode="numeric" maxlength="4" autocomplete="off"></div>'+
+      '<p class="err" id="pinErr" role="alert"></p>'+
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="btn primary" data-act="pin-save">'+(on?'Change PIN':'Turn on PIN lock')+'</button>'+(on?'<button class="btn danger" data-act="pin-off">Turn off</button>':'')+'</div>'+
+      '<p class="note" style="margin-top:12px">Your developer can also lock this app remotely, for example if a subscription ends. Your data stays on the phone while it is locked.</p></div></div>';
+  }
+  function initLocks(){
+    evalLock(readCached());
+    pinRequired = !!getPin();
+    authOk = sessionValid();
+    render();
+    refreshLockUI();
+    checkLock();
+  }
+
+  // ---- Student ID cards ----
+  function idNo(s){ return 'TD-'+String(s.id).padStart(4,'0'); }
+  function cardBatch(s){ var l=sBatches(s).map(function(b){return b.subject;}); return l.length ? l.join(', ') : 'No batch'; }
+  function idCardHtml(s){
+    var ph = s.photo ? '<img class="idc-ph" src="'+esc(s.photo)+'" alt="Photo of '+esc(s.name)+'">' : '<span class="idc-ph" aria-hidden="true">'+esc(initials(s.name))+'</span>';
+    return '<div class="idc"><div class="idc-h"><span class="idc-lg">'+logoHtml()+'</span><b>'+esc(CENTRE)+'</b></div>'+
+      '<div class="idc-b">'+ph+'<div class="idc-t"><div class="idc-n">'+esc(s.name)+'</div><div class="idc-s">'+esc(cardBatch(s))+'</div>'+
+      '<div class="idc-r"><span>ID</span><b>'+idNo(s)+'</b><span>Parent</span><b>'+esc(s.parent)+'</b><span>Phone</span><b>+91 '+esc(s.phone)+'</b></div></div></div>'+
+      '<div class="idc-f">Student ID card · '+TODAY.getFullYear()+'</div></div>';
+  }
+  function idCardSection(){
+    var head = '<div class="label" style="margin:2px 2px 8px">Student ID cards</div>';
+    var s = byId(state.idStu) || students[0];
+    if(!s) return '<div>'+head+'<div class="card empty">No students yet. Add one first.</div></div>';
+    var opts = students.map(function(x){ return '<option value="'+x.id+'"'+(x.id===s.id?' selected':'')+'>'+esc(x.name)+'</option>'; }).join('');
+    return '<div>'+head+'<div class="card"><div class="field"><label class="label" for="idStu">Student</label><select id="idStu" data-sel="idStu">'+opts+'</select></div>'+
+      '<div style="margin:14px 0">'+idCardHtml(s)+'</div>'+
+      (s.photo ? '' : '<p class="note" style="margin-bottom:10px">No photo yet. Use Add photo in the Students list above.</p>')+
+      '<button class="btn primary block" data-act="card-dl" data-id="'+s.id+'">Download this ID card (PNG)</button>'+
+      '<button class="btn block" style="margin-top:8px" id="cards-all-btn" data-act="cards-all">Download all ID cards, one by one ('+students.length+')</button>'+
+      '<p class="note" style="margin-top:8px">The card shows the centre name and logo, photo, name, batches, ID number, parent and phone. If your phone asks, allow multiple downloads.</p></div></div>';
+  }
+  function loadImg(src){
+    return new Promise(function(res){ if(!src){ res(null); return; } var i=new Image(); i.onload=function(){res(i);}; i.onerror=function(){res(null);}; i.src=src; });
+  }
+  function rr(c,x,y,w,h,r){ c.beginPath(); c.moveTo(x+r,y); c.arcTo(x+w,y,x+w,y+h,r); c.arcTo(x+w,y+h,x,y+h,r); c.arcTo(x,y+h,x,y,r); c.arcTo(x,y,x+w,y,r); c.closePath(); }
+  function fitText(c,t,maxW){ t=String(t); if(c.measureText(t).width<=maxW) return t; while(t.length>1 && c.measureText(t+'\u2026').width>maxW) t=t.slice(0,-1); return t+'\u2026'; }
+  function cardCanvas(s){
+    return Promise.all([loadImg(s.photo), loadImg(LOGO)]).then(function(im){
+      var W=856, H=540, cv=document.createElement('canvas'); cv.width=W; cv.height=H;
+      var c=cv.getContext('2d'), F='Figtree, -apple-system, Segoe UI, Arial, sans-serif';
+      c.save(); rr(c,0,0,W,H,28); c.clip();
+      c.fillStyle='#ffffff'; c.fillRect(0,0,W,H);
+      c.fillStyle='#0E6B52'; c.fillRect(0,0,W,120);
+      c.fillStyle='#ffffff'; rr(c,28,22,76,76,16); c.fill();
+      if(im[1]){ c.save(); rr(c,32,26,68,68,12); c.clip(); c.drawImage(im[1],32,26,68,68); c.restore(); }
+      else { c.strokeStyle='#0E6B52'; c.lineWidth=9; c.lineCap='round'; c.lineJoin='round'; c.beginPath(); c.moveTo(50,62); c.lineTo(64,76); c.lineTo(88,46); c.stroke(); }
+      c.textBaseline='middle'; c.textAlign='left'; c.fillStyle='#ffffff'; c.font='700 40px '+F;
+      c.fillText(fitText(c,CENTRE,W-124-28),124,60);
+      var px=32, py=154, pw=230, ph=280;
+      c.fillStyle='#DDF0E8'; rr(c,px,py,pw,ph,20); c.fill();
+      if(im[0]){
+        c.save(); rr(c,px,py,pw,ph,20); c.clip();
+        var iw=im[0].width, ih=im[0].height, k=Math.max(pw/iw,ph/ih), dw=iw*k, dh=ih*k;
+        c.drawImage(im[0],px+(pw-dw)/2,py+(ph-dh)/2,dw,dh); c.restore();
+      } else {
+        c.fillStyle='#0E6B52'; c.font='700 90px '+F; c.textAlign='center'; c.fillText(initials(s.name),px+pw/2,py+ph/2); c.textAlign='left';
+      }
+      c.strokeStyle='#0E6B52'; c.lineWidth=5; rr(c,px,py,pw,ph,20); c.stroke();
+      var tx=294, tw=W-tx-30;
+      c.fillStyle='#14201B'; c.font='700 48px '+F; c.fillText(fitText(c,s.name,tw),tx,190);
+      c.fillStyle='#5A6A63'; c.font='500 28px '+F; c.fillText(fitText(c,cardBatch(s),tw),tx,240);
+      var rows=[['ID',idNo(s)],['Parent',s.parent],['Phone','+91 '+s.phone]], yy=316;
+      rows.forEach(function(r){
+        c.fillStyle='#5A6A63'; c.font='500 28px '+F; c.fillText(r[0],tx,yy);
+        c.fillStyle='#14201B'; c.font='700 30px '+F; c.fillText(fitText(c,r[1],tw-130),tx+130,yy); yy+=62;
+      });
+      c.fillStyle='#DDF0E8'; c.fillRect(0,H-64,W,64);
+      c.fillStyle='#0E6B52'; c.font='700 24px '+F; c.textAlign='center'; c.fillText('STUDENT ID CARD  \u00B7  '+TODAY.getFullYear(),W/2,H-32);
+      c.restore();
+      c.strokeStyle='#b9c9c1'; c.lineWidth=4; rr(c,2,2,W-4,H-4,27); c.stroke();
+      return cv;
+    });
+  }
+  function dlCard(id){
+    var s=byId(id); if(!s){ toast('Student not found'); return Promise.resolve(false); }
+    return cardCanvas(s).then(function(cv){
+      return new Promise(function(res){
+        cv.toBlob(function(b){
+          if(!b){ toast('Could not make the ID card.'); res(false); return; }
+          var url=URL.createObjectURL(b), a=document.createElement('a'), nm=s.name.replace(/[^A-Za-z0-9]+/g,'-').replace(/^-|-$/g,'')||'student';
+          a.href=url; a.download='TuitionDesk-'+nm+'-idcard.png'; document.body.appendChild(a); a.click();
+          setTimeout(function(){ if(a.parentNode) a.parentNode.removeChild(a); URL.revokeObjectURL(url); },8000);
+          res(true);
+        },'image/png');
+      });
+    });
+  }
+  var cardBusy=false;
+  function cardsAll(){
+    if(cardBusy) return;
+    var ids=students.map(function(x){return x.id;}), n=ids.length, i=0;
+    if(!n){ toast('No students to download'); return; }
+    cardBusy=true; var bt=document.getElementById('cards-all-btn'); if(bt) bt.disabled=true;
+    (function next(){
+      if(i>=n){ cardBusy=false; var b2=document.getElementById('cards-all-btn'); if(b2) b2.disabled=false; toast('Done. '+n+' ID card'+(n===1?'':'s')+' downloaded.'); return; }
+      toast('Downloading ID card '+(i+1)+' of '+n+'...');
+      dlCard(ids[i]).then(function(){ i++; setTimeout(next,900); });
+    })();
+  }
+
+  // ---- Student photos ----
+  function initials(n){ var p=String(n).trim().split(/\s+/); return ((p[0]||'?').charAt(0)+(p.length>1?p[p.length-1].charAt(0):'')).toUpperCase(); }
+  function avatar(s,lg){
+    return s.photo ? '<img class="av'+(lg?' lg':'')+'" src="'+esc(s.photo)+'" alt="Photo of '+esc(s.name)+'">'
+                   : '<span class="av'+(lg?' lg':'')+'" aria-hidden="true">'+esc(initials(s.name))+'</span>';
+  }
+  function photoBtns(s){
+    return '<label class="btn sm" for="ph-'+s.id+'">'+(s.photo?'Change photo':'Add photo')+'<input class="sr" id="ph-'+s.id+'" type="file" accept="image/*" data-photo="'+s.id+'"></label>'+
+      (s.photo?'<button class="btn sm" data-act="photo-dl" data-id="'+s.id+'" aria-label="Download photo of '+esc(s.name)+'">Save photo</button><button class="btn sm" data-act="photo-rm" data-id="'+s.id+'" aria-label="Remove photo of '+esc(s.name)+'">Remove photo</button>':'');
+  }
+  function handlePhoto(input,key){
+    var f=input.files && input.files[0]; if(!f) return;
+    if(!/^image\//.test(f.type)){ toast('Choose an image file, such as PNG or JPG.'); input.value=''; return; }
+    if(f.size>8*1024*1024){ toast('That image is over 8 MB. Choose a smaller one.'); input.value=''; return; }
+    var r=new FileReader();
+    r.onload=function(){
+      var img=new Image();
+      img.onload=function(){
+        var S=240, c=document.createElement('canvas'); c.width=S; c.height=S;
+        var m=Math.min(img.width,img.height);
+        if(!m){ toast('Could not read that image.'); return; }
+        var cx=c.getContext('2d'); cx.fillStyle='#fff'; cx.fillRect(0,0,S,S);
+        cx.drawImage(img,(img.width-m)/2,(img.height-m)/2,m,m,0,0,S,S);
+        var url; try{ url=c.toDataURL('image/jpeg',0.82); }catch(e){ toast('Could not use that image. Try a PNG or JPG.'); return; }
+        if(key==='new'){
+          newPhoto=url; var pv=document.getElementById('newPhotoPrev');
+          if(pv) pv.innerHTML='<img class="av" src="'+esc(url)+'" alt="Photo preview">';
+          toast('Photo ready. Tap Add student to save.');
+        } else {
+          var st=byId(key); if(!st) return;
+          st.photo=url; render(); toast('Photo saved for '+st.name);
+        }
+      };
+      img.onerror=function(){ toast('Could not read that image. Try a PNG or JPG.'); };
+      img.src=r.result;
+    };
+    r.onerror=function(){ toast('Could not read that file.'); };
+    r.readAsDataURL(f); input.value='';
+  }
+  function dlPhoto(id){
+    var s=byId(id); if(!s || !s.photo){ toast('No photo to save'); return; }
+    var a=document.createElement('a'); a.href=s.photo;
+    a.download='TuitionDesk-'+(s.name.replace(/[^A-Za-z0-9]+/g,'-').replace(/^-|-$/g,'')||'student')+'-photo.jpg';
+    document.body.appendChild(a); a.click();
+    setTimeout(function(){ if(a.parentNode) a.parentNode.removeChild(a); },2000);
+    toast('Photo saved for '+s.name);
+  }
+
+  // ---- Logo ----
+  var DEFAULT_LOGO = '<svg viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="10" style="fill:var(--accent)"/><path d="M11 21l6 6 12-14" style="fill:none;stroke:var(--accent-ink);stroke-width:4;stroke-linecap:round;stroke-linejoin:round"/></svg>';
+  function logoHtml(){ return LOGO ? '<img src="'+esc(LOGO)+'" alt="Centre logo">' : DEFAULT_LOGO; }
+  function applyLogo(){
+    var l=document.getElementById('logo'); if(l) l.innerHTML=logoHtml();
+    var pv=document.getElementById('logoPrev'); if(pv) pv.innerHTML=logoHtml();
+    var b=document.getElementById('logoRemove'); if(b) b.disabled=!LOGO;
+    var ati=document.querySelector('link[rel="apple-touch-icon"]'); if(ati) ati.href = LOGO || 'icon-192.png';
+  }
+  function handleLogo(input){
+    var f=input.files && input.files[0]; if(!f) return;
+    var err=document.getElementById('logoErr');
+    if(!/^image\//.test(f.type)){ err.textContent='Choose an image file, such as PNG or JPG.'; input.value=''; return; }
+    if(f.size>8*1024*1024){ err.textContent='That image is over 8 MB. Choose a smaller one.'; input.value=''; return; }
+    var r=new FileReader();
+    r.onload=function(){
+      var img=new Image();
+      img.onload=function(){
+        var S=192, c=document.createElement('canvas'); c.width=S; c.height=S;
+        var m=Math.min(img.width,img.height), sx=(img.width-m)/2, sy=(img.height-m)/2;
+        if(!m){ err.textContent='Could not read that image.'; return; }
+        c.getContext('2d').drawImage(img,sx,sy,m,m,0,0,S,S);
+        try{ LOGO=c.toDataURL('image/png'); }catch(e){ err.textContent='Could not use that image. Try a PNG or JPG.'; return; }
+        err.textContent=''; applyLogo(); save(); toast('Logo updated');
+      };
+      img.onerror=function(){ err.textContent='Could not read that image. Try a PNG or JPG.'; };
+      img.src=r.result;
+    };
+    r.onerror=function(){ err.textContent='Could not read that file.'; };
+    r.readAsDataURL(f);
+    input.value='';
+  }
+
+  // ---- Rendering ----
+  var main = document.getElementById('main');
+  function render(){
+    var aid = document.activeElement && document.activeElement.id;
+    var views = {fees:viewFees, attendance:viewAttendance, tests:viewTests, parent:viewParent, owner:viewOwner};
+    main.innerHTML = views[state.tab]();
+    document.getElementById('tabbar').innerHTML = TABS.map(function(t){
+      return '<button data-act="tab" data-tab="'+t.id+'"'+(t.id===state.tab?' aria-current="page"':'')+'><svg viewBox="0 0 24 24" aria-hidden="true">'+t.icon+'</svg>'+t.label+(t.id==='owner'&&replyCount()?'<b class="badge" aria-label="'+replyCount()+' queries need a reply">'+replyCount()+'</b>':'')+'</button>';
+    }).join('');
+    if(aid){ var el=document.getElementById(aid); if(el) el.focus({preventScroll:true}); }
+    document.getElementById('centre').textContent = CENTRE;
+    applyLogo();
+    save();
+  }
+
+  // ---- Sheet (WhatsApp queue) ----
+  function openSheet(opts){
+    state.lastFocus = document.activeElement;
+    state.sheet = {rows:opts.rows, sent:{}};
+    document.getElementById('sheetTitle').textContent = opts.title;
+    document.getElementById('sheetIntro').textContent = opts.intro;
+    document.getElementById('scrim').hidden = false;
+    document.getElementById('sheet').hidden = false;
+    renderSheet();
+    document.getElementById('sheetClose').focus();
+  }
+  function renderSheet(){
+    var sh = state.sheet; if(!sh) return;
+    var opened = sh.rows.filter(function(r){return sh.sent[r.id];}).length;
+    var next = sh.rows.filter(function(r){return !sh.sent[r.id];})[0];
+    var top = next ? '<a class="btn primary block" data-sid="'+next.id+'" href="'+esc(next.href)+'" target="_blank" rel="noopener">Open next in WhatsApp ('+esc(next.name.split(' ')[0])+')</a>'
+                   : '<div class="card" style="text-align:center"><b>All '+sh.rows.length+' chats opened.</b><div class="meta">Tap Send inside WhatsApp to finish each one.</div></div>';
+    var list = sh.rows.map(function(r){
+      var done = sh.sent[r.id];
+      return '<div class="row" style="padding:10px 0;border-top:1px solid var(--line)"><div><div class="name">'+esc(r.name)+'</div><div class="meta">'+esc(r.sub)+'</div></div>'+
+        '<a class="btn sm" data-sid="'+r.id+'" href="'+esc(r.href)+'" target="_blank" rel="noopener">'+(done?'Opened ✓':'Open')+'</a></div>';
+    }).join('');
+    document.getElementById('sheetBody').innerHTML = top+'<p class="meta" style="margin:12px 0 0">'+opened+' of '+sh.rows.length+' opened</p><div style="margin-top:4px">'+list+'</div>';
+  }
+  function closeSheet(){
+    document.getElementById('sheet').hidden = true; document.getElementById('scrim').hidden = true; state.sheet = null;
+    var f = state.lastFocus; if(f && f.id){ var el=document.getElementById(f.id); if(el) el.focus({preventScroll:true}); }
+  }
+
+  var toastTimer;
+  function toast(t){
+    var el = document.getElementById('toast'); el.textContent = t; el.hidden = false;
+    clearTimeout(toastTimer); toastTimer = setTimeout(function(){ el.hidden = true; }, 2800);
+  }
+  function copyUpi(){
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(UPI_ID).then(function(){ toast('UPI ID copied'); }, function(){ toast('Could not copy. Press and hold the UPI ID to copy it.'); });
+    } else { toast('Press and hold the UPI ID to copy it.'); }
+  }
+
+  // ---- Events ----
+  document.addEventListener('click', function(e){
+    var sa = e.target.closest('a[data-sid]');
+    if(sa && state.sheet){ var id = sa.getAttribute('data-sid'); setTimeout(function(){ if(state.sheet){ state.sheet.sent[id]=true; renderSheet(); } }, 400); return; }
+    if(e.target.id==='scrim'){ closeSheet(); return; }
+    var t = e.target.closest('[data-act]'); if(!t) return;
+    var act = t.getAttribute('data-act'), id = t.getAttribute('data-id');
+    if(act==='tab'){ state.tab = t.getAttribute('data-tab'); render(); window.scrollTo(0,0); }
+    else if(act==='mark-paid'){ var s=byId(id); s.paid=s.billed; s.dueAgo=0; render(); toast(s.name+' marked as paid'); }
+    else if(act==='remind-all'){
+      var list = students.filter(function(s){return pend(s)>0;}).sort(function(a,b){return b.dueAgo-a.dueAgo;});
+      openSheet({title:'Fee reminders', intro:'WhatsApp opens one chat at a time with the message ready. Tap Send in WhatsApp, then come back for the next parent.',
+        rows:list.map(function(s){ return {id:s.id, name:s.parent+' ('+s.name+')', sub:inr(pend(s))+(s.dueAgo>0?' · '+s.dueAgo+' days late':' · due soon'), href:wa(s.phone,feeMsg(s))}; })});
+    }
+    else if(act==='mark'){ setMk(state.attBatch,id,t.getAttribute('data-v')); state.savedB[state.attBatch]=false; render(); }
+    else if(act==='all-present'){ batchStudents(state.attBatch).forEach(function(s){setMk(state.attBatch,s.id,'P');}); state.savedB[state.attBatch]=false; render(); }
+    else if(act==='save-att' || act==='resend-att'){
+      var cb = batchById(state.attBatch);
+      state.savedB[state.attBatch] = true; render();
+      var ab = batchStudents(state.attBatch).filter(function(s){return mk(state.attBatch,s.id)==='A';});
+      if(!ab.length){ toast('Attendance saved. Everyone is present.'); return; }
+      if(act==='save-att') toast('Attendance saved. '+ab.length+' absent.');
+      openSheet({title:'Absent alerts', intro:'Each chat opens in WhatsApp with the message ready. Tap Send in WhatsApp for every parent.',
+        rows:ab.map(function(s){ return {id:s.id, name:s.parent+' ('+s.name+')', sub:'Absent today', href:wa(s.phone,absentMsg(s,cb))}; })});
+    }
+    else if(act==='pick-test'){ state.testStu=Number(id); render(); window.scrollTo(0,0); }
+    else if(act==='copy-upi'){ copyUpi(); }
+    else if(act==='enq-contacted'){ enquiries.forEach(function(q){ if(q.id===Number(id)) q.status='Contacted'; }); render(); }
+    else if(act==='add-toggle'){ state.addOpen=!state.addOpen; state.confirmId=null; state.prefill=null; newPhoto=''; render(); if(state.addOpen){ var f=document.getElementById('fName'); if(f) f.focus(); } }
+    else if(act==='remove-ask'){ state.confirmId=Number(id); render(); }
+    else if(act==='remove-cancel'){ state.confirmId=null; render(); }
+    else if(act==='remove-yes'){
+      var rs=byId(id); students = students.filter(function(x){return x.id!==Number(id);}); Object.keys(state.marks).forEach(function(k){ if(state.marks[k]) delete state.marks[k][id]; }); queries = queries.filter(function(q){return q.stuId!==Number(id);}); if(state.openThread===Number(id)) state.openThread=null; state.confirmId=null;
+      if(!byId(state.testStu)) state.testStu = students.length ? students[0].id : null;
+      if(!byId(state.parentStu)) state.parentStu = students.length ? students[0].id : null;
+      render(); toast(rs.name+' removed');
+    }
+    else if(act==='save-score'){
+      var inp=document.getElementById('scoreIn'), raw=inp.value.trim(), v=Number(raw), er=document.getElementById('scoreErr');
+      var te=setTotal(state.testIdx, document.getElementById('totIn').value.trim()); if(te){ er.textContent=te; return; }
+      var mxx=tmax(state.testIdx);
+      if(raw===''||!isFinite(v)||v<0||v>mxx){ er.textContent='Enter a score from 0 to '+mxx+'.'; return; }
+      var sb=document.getElementById('subIn'); if(sb) testSubj[state.testIdx]=sb.value.trim().replace(/\s+/g,' ');
+      byId(state.testStu).scores[state.testIdx]=Math.round(v*2)/2; render(); toast('Score saved'+(testSubj[state.testIdx]?' for '+testSubj[state.testIdx]:''));
+    }
+    else if(act==='due-edit'){ state.dueEdit=Number(id); render(); var di=document.getElementById('dueIn'); if(di) di.focus(); }
+    else if(act==='due-cancel'){ state.dueEdit=null; render(); }
+    else if(act==='pin-unlock'){ tryUnlock(); }
+    else if(act==='pin-forgot'){ forgotOpen=true; lastMode=''; refreshLockUI(); }
+    else if(act==='pin-forgot-cancel'){ forgotOpen=false; lastMode=''; refreshLockUI(); }
+    else if(act==='pin-reset'){ try{ localStorage.removeItem(PIN_KEY); localStorage.removeItem('tuitiondesk-v1'); }catch(e){} location.reload(); }
+    else if(act==='lock-check'){
+      var ln=document.getElementById('lockNote'); if(ln) ln.textContent='Checking...';
+      checkLock().then(function(r){
+        if(!devLock.locked) return;
+        var n2=document.getElementById('lockNote');
+        if(n2) n2.textContent = r==='offline' ? 'Could not check. Connect to the internet and try again.' : 'Still locked. Please contact your developer.';
+      });
+    }
+    else if(act==='pin-save'){
+      var pc=document.getElementById('pinCur'), pn=document.getElementById('pinNew'), pe=document.getElementById('pinErr'), nv=pn.value.trim();
+      if(!/^\d{4}$/.test(nv)){ pe.textContent='Enter a new 4-digit PIN.'; return; }
+      verifyPin(pc?pc.value.trim():'').then(function(ok){
+        if(!ok){ pe.textContent='The current PIN is not correct.'; return; }
+        return setPin(nv).then(function(done){
+          if(!done){ pe.textContent='Could not save the PIN on this device.'; return; }
+          render(); toast('PIN saved. The app will ask for it when reopened.');
+        });
+      });
+    }
+    else if(act==='pin-off'){
+      var pc2=document.getElementById('pinCur'), pe2=document.getElementById('pinErr');
+      verifyPin(pc2?pc2.value.trim():'').then(function(ok){
+        if(!ok){ pe2.textContent='Enter the current PIN to turn it off.'; return; }
+        try{ localStorage.removeItem(PIN_KEY); }catch(e){}
+        render(); toast('PIN lock is off');
+      });
+    }
+    else if(act==='enq-toggle'){ state.enqOpen=!state.enqOpen; state.confirmEnq=null; render(); if(state.enqOpen){ var en=document.getElementById('eName'); if(en) en.focus(); } }
+    else if(act==='enq-next'){ enquiries.forEach(function(q){ if(q.id===Number(id)) q.status = q.status==='New' ? 'Contacted' : 'Joined'; }); render(); }
+    else if(act==='enq-reward'){ enquiries.forEach(function(q){ if(q.id===Number(id)) q.rewarded=true; }); render(); toast('Reward marked as given'); }
+    else if(act==='enq-student'){
+      var eq=enquiries.filter(function(q){return q.id===Number(id);})[0];
+      state.addOpen=true; state.prefill={name:eq.name, phone:eq.phone, enqId:eq.id}; render();
+      var fn=document.getElementById('fName'); if(fn){ if(fn.scrollIntoView) fn.scrollIntoView({block:'center'}); fn.focus(); }
+    }
+    else if(act==='enq-ask'){ state.confirmEnq=Number(id); render(); }
+    else if(act==='enq-cancel'){ state.confirmEnq=null; render(); }
+    else if(act==='enq-yes'){ enquiries = enquiries.filter(function(q){return q.id!==Number(id);}); state.confirmEnq=null; render(); toast('Enquiry deleted'); }
+    else if(act==='copy-ref'){
+      var rm=refMsg(byId(state.parentStu));
+      if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(rm).then(function(){ toast('Message copied'); }, function(){ toast('Could not copy. Use Share on WhatsApp instead.'); }); }
+      else { toast('Could not copy. Use Share on WhatsApp instead.'); }
+    }
+    else if(act==='up-import'){ importScores(); }
+    else if(act==='up-sample-fill'){ state.upText=sampleCsv(); var ta=document.getElementById('upText'); if(ta) ta.value=state.upText; toast('Sample added. Tap Import scores to try it.'); }
+    else if(act==='up-sample-copy'){
+      if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(sampleCsv()).then(function(){ toast('Sample copied'); }, function(){ toast('Could not copy. Use "Use sample in box" instead.'); }); }
+      else { toast('Could not copy. Use "Use sample in box" instead.'); }
+    }
+    else if(act==='thread-toggle'){ state.openThread = state.openThread===Number(id) ? null : Number(id); render(); }
+    else if(act==='quick'){ var tpl=templates[Number(t.getAttribute('data-i'))], ri=document.getElementById('rIn'); if(ri){ ri.value=tpl; ri.focus(); } }
+    else if(act==='logo-remove'){ LOGO=''; applyLogo(); save(); toast('Default logo restored'); }
+    else if(act==='export-pdf'){ exportPdf(); }
+    else if(act==='export-each'){ exportEach(); }
+    else if(act==='photo-dl'){ dlPhoto(id); }
+    else if(act==='card-dl'){ dlCard(id).then(function(ok){ if(ok) toast('ID card saved'); }); }
+    else if(act==='cards-all'){ cardsAll(); }
+    else if(act==='photo-rm'){ var ps=byId(id); if(ps){ ps.photo=''; render(); toast('Photo removed'); } }
+    else if(act==='student-pdf'){ exportStudentPdf(Number(id)); }
+    else if(act==='auth-logout'){ try{ localStorage.removeItem(SESS_KEY); }catch(e){} authOk=false; authForgot=false; gToken=null; gAuto=false; lastMode=''; refreshLockUI(); }
+    else if(act==='auth-google'){ authGoogle(); }
+    else if(act==='auth-new'){ authNew=true; lastMode=''; refreshLockUI(); }
+    else if(act==='auth-new-cancel'){ authNew=false; lastMode=''; refreshLockUI(); }
+    else if(act==='auth-cid'){
+      var cv2=document.getElementById('auCid').value.trim(), ae=document.getElementById('auErr');
+      if(!/^[A-Za-z0-9._-]+\.apps\.googleusercontent\.com$/.test(cv2)){ if(ae) ae.textContent='That does not look like a Google Client ID.'; else toast('That does not look like a Google Client ID.'); return; }
+      GCLIENT=cv2; try{ localStorage.setItem(KEY, JSON.stringify(snapshot())); }catch(e){} gLoadLib().catch(function(){}); lastMode=''; refreshLockUI(); toast('Client ID saved');
+    }
+    else if(act==='auth-forgot'){ authForgot=true; lastMode=''; refreshLockUI(); }
+    else if(act==='auth-forgot-cancel'){ authForgot=false; lastMode=''; refreshLockUI(); }
+    else if(act==='auth-reset'){ try{ localStorage.removeItem(ACCT_KEY); localStorage.removeItem(SESS_KEY); localStorage.removeItem(PIN_KEY); localStorage.removeItem('tuitiondesk-v1'); }catch(e){} location.reload(); }
+    else if(act==='g-saveid'){
+      var gv=document.getElementById('gCid').value.trim();
+      if(gv && !/^[A-Za-z0-9._-]+\.apps\.googleusercontent\.com$/.test(gv)){ toast('That does not look like a Google Client ID.'); return; }
+      GCLIENT=gv||DEFAULT_GCLIENT; gStat=''; render(); toast(gv?'Client ID saved':'Client ID removed'); if(gv) gLoadLib().catch(function(){});
+    }
+    else if(act==='g-connect'){ gConnect(); }
+    else if(act==='g-clearid'){
+      if(!window.confirm('Remove the Google Client ID? Google login and backup will stop until you add one again.')) return;
+      GCLIENT=DEFAULT_GCLIENT; gToken=null; gAuto=false; gClient=null; gStat=''; render(); toast(DEFAULT_GCLIENT?'Using the built-in Google connection':'Client ID removed');
+    }
+    else if(act==='g-copy'){
+      var ov=location.origin;
+      if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(ov).then(function(){ toast('Address copied'); }, function(){ toast('Could not copy. Press and hold the address to copy it.'); }); }
+      else { toast('Press and hold the address to copy it.'); }
+    }
+    else if(act==='g-push'){
+      gSetStat('Backing up...');
+      gPush().then(function(){ gAuto=true; gStat='Backed up to Google at '+gTime(gRemote.modifiedTime)+'. Auto backup is on.'; render(); toast('Backed up to Google'); }).catch(function(e){ gSetStat(gErr(e)); });
+    }
+    else if(act==='g-pull'){ gPull(); }
+    else if(act==='g-off'){ gToken=null; gAuto=false; gStat='Disconnected. Data stays on this phone and in your Google backup.'; render(); }
+    else if(act==='sheet-close'){ closeSheet(); }
+    else if(act==='batch-add'){ BATCHES.push({id:nextBatchId++, subject:'New batch', time:'5:00 to 6:00 PM'}); render(); toast('Batch added. Rename it and set the time.'); }
+    else if(act==='batch-ask'){ state.confirmBatch=Number(id); render(); }
+    else if(act==='batch-cancel'){ state.confirmBatch=null; render(); }
+    else if(act==='batch-yes'){
+      var bid=Number(id);
+      BATCHES = BATCHES.filter(function(x){return x.id!==bid;});
+      students.forEach(function(s){ s.bs=(s.bs||[]).filter(function(x){return x!==bid;}); });
+      delete state.marks[bid]; delete state.savedB[bid]; state.confirmBatch=null;
+      if(!batchById(state.attBatch)) state.attBatch=BATCHES[0].id;
+      render(); toast('Batch removed');
+    }
+    else if(act==='stu-batch'){ state.stuBatch=Number(id); render(); }
+    else if(act==='stu-batch-cancel'){ state.stuBatch=null; render(); }
+    else if(act==='stu-batch-save'){
+      var ids=[].map.call(document.querySelectorAll('input[data-sb]:checked'),function(x){return Number(x.getAttribute('data-sb'));});
+      var er3=document.getElementById('sbErr');
+      if(!ids.length){ er3.textContent='Choose at least one batch.'; return; }
+      var stb=byId(id); stb.bs=ids; state.stuBatch=null; render(); toast('Batches updated for '+stb.name);
+    }
+  });
+  document.addEventListener('change', function(e){
+    if(e.target.id==='upFile'){ readUp(e.target); return; }
+    if(e.target.id==='logoFile'){ handleLogo(e.target); return; }
+    var phk = e.target.getAttribute && e.target.getAttribute('data-photo');
+    if(phk){ handlePhoto(e.target, phk); return; }
+    var bf = e.target.getAttribute && e.target.getAttribute('data-bf');
+    if(bf){
+      var bb = batchById(e.target.getAttribute('data-id')), bv = e.target.value.trim().replace(/\s+/g,' ');
+      if(!bb) return;
+      if(bf==='subject' && !bv){ e.target.value = bb.subject; toast('Subject name cannot be empty'); return; }
+      bb[bf] = bv; e.target.value = bv; save(); toast('Batch updated'); return;
+    }
+    var k = e.target.getAttribute && e.target.getAttribute('data-sel'); if(!k) return;
+    state[k] = Number(e.target.value); render();
+  });
+  document.addEventListener('submit', function(e){
+    if(e.target.id!=='addForm') return;
+    e.preventDefault();
+    var name=document.getElementById('fName').value.trim(), parent=document.getElementById('fParent').value.trim(),
+        phone=document.getElementById('fPhone').value.replace(/\D/g,''), fee=Number(document.getElementById('fFee').value),
+        err=document.getElementById('formErr');
+    if(!name){ err.textContent='Enter the student name.'; return; }
+    if(!parent){ err.textContent='Enter the parent name.'; return; }
+    if(!/^[6-9]\d{9}$/.test(phone)){ err.textContent='Enter a 10-digit mobile number starting with 6, 7, 8 or 9.'; return; }
+    if(!(fee>0)){ err.textContent='Enter the monthly fee.'; return; }
+    var nb=[].map.call(document.querySelectorAll('input[data-nb]:checked'),function(x){return Number(x.getAttribute('data-nb'));});
+    if(!nb.length){ err.textContent='Choose at least one batch.'; return; }
+    var dueAgoNew=daysAgoFromIso(document.getElementById('fDue').value);
+    if(dueAgoNew===null){ err.textContent='Choose the first fee due date.'; return; }
+    var st={id:nextId++, name:name, parent:parent, phone:phone, billed:fee, paid:0, dueAgo:dueAgoNew, att:[0,0], bs:nb, scores:[null,null,null,null,null,null], hw:[0,0,0], photo:newPhoto||''};
+    students.push(st); newPhoto=''; nb.forEach(function(bid){ state.savedB[bid]=false; }); state.addOpen=false;
+    if(state.prefill && state.prefill.enqId){ enquiries.forEach(function(q){ if(q.id===state.prefill.enqId){ q.converted=true; q.status='Joined'; } }); }
+    state.prefill=null;
+    render(); toast(name+' added. First fee is due on '+fmt(addDays(TODAY,-dueAgoNew))+'.');
+  });
+  document.addEventListener('submit', function(e){
+    if(e.target.id!=='setForm') return;
+    e.preventDefault();
+    var nm=document.getElementById('sName').value.trim(), upi=document.getElementById('sUpi').value.trim(),
+        mx=Number(document.getElementById('sMax').value), err=document.getElementById('setErr');
+    if(!nm){ err.textContent='Enter the centre name.'; return; }
+    if(!/^[A-Za-z0-9.\-_]{2,256}@[A-Za-z0-9]{2,64}$/.test(upi)){ err.textContent='Enter a valid UPI ID, like name@bank.'; return; }
+    if(!(mx>=1 && mx<=1000 && Math.floor(mx)===mx)){ err.textContent='Enter a whole number of marks from 1 to 1000.'; return; }
+    var pp=Number(document.getElementById('sPass').value);
+    if(!(pp>=1 && pp<=100 && Math.floor(pp)===pp)){ err.textContent='Enter a pass mark from 1 to 100 percent.'; return; }
+    var top=0; students.forEach(function(st){ st.scores.forEach(function(v,ti){ if(!testMax[ti] && v!=null && v>top) top=v; }); });
+    if(mx<top){ err.textContent='Some saved scores are higher than '+mx+'. Use at least '+Math.ceil(top)+'.'; return; }
+    var lines=document.getElementById('sQuick').value.split(/\r?\n/).map(function(x){return x.trim();}).filter(Boolean);
+    if(lines.length>8){ err.textContent='Use at most 8 quick replies.'; return; }
+    if(lines.some(function(x){return x.length>160;})){ err.textContent='Each quick reply must be under 160 characters.'; return; }
+    var ph=document.getElementById('sPhone').value.replace(/\D/g,''), offer=document.getElementById('sOffer').value.trim();
+    if(ph && !/^[6-9]\d{9}$/.test(ph)){ err.textContent='Enter a 10-digit centre number, or leave it empty.'; return; }
+    var soc={}, badName=null;
+    [['instagram','sIg','Instagram'],['facebook','sFb','Facebook'],['youtube','sYt','YouTube'],['website','sWeb','Website']].forEach(function(f){
+      var r=normUrl(document.getElementById(f[1]).value, f[0]==='instagram');
+      if(r===null){ badName=badName||f[2]; } else { soc[f[0]]=r; }
+    });
+    if(badName){ err.textContent='Enter a valid link for '+badName+'.'; return; }
+    CENTRE=nm; UPI_ID=upi; MAXM=mx; PASSP=pp; templates=lines; OFFER=offer; PHONE=ph; SOCIAL=soc; render(); toast('Settings saved');
+  });
+  document.addEventListener('submit', function(e){
+    var fid=e.target.id;
+    if(fid!=='qForm' && fid!=='rForm') return;
+    e.preventDefault();
+    if(fid==='qForm'){
+      var t=document.getElementById('qIn').value.trim(), er=document.getElementById('qErr');
+      if(!t){ er.textContent='Type your question first.'; return; }
+      queries.push({id:nextQ(), stuId:state.parentStu, from:'parent', text:t, ts:Date.now()});
+      render(); toast('Sent. The centre will reply here.');
+    } else {
+      var sid=Number(e.target.getAttribute('data-id')), tx=document.getElementById('rIn').value.trim(), er2=document.getElementById('rErr');
+      if(!tx){ er2.textContent='Type a reply or tap a quick reply.'; return; }
+      queries.push({id:nextQ(), stuId:sid, from:'centre', text:tx, ts:Date.now()});
+      render(); toast('Reply sent');
+    }
+  });
+  document.addEventListener('input', function(e){ if(e.target.id==='upText') state.upText=e.target.value; });
+  document.addEventListener('submit', function(e){
+    if(e.target.id!=='dueForm') return;
+    e.preventDefault();
+    var sid=Number(e.target.getAttribute('data-id')), v=document.getElementById('dueIn').value, n=daysAgoFromIso(v), er=document.getElementById('dueErr');
+    if(n===null){ er.textContent='Choose a due date.'; return; }
+    var st=byId(sid); st.dueAgo=n; state.dueEdit=null; render(); toast('Due date for '+st.name+' set to '+fmt(addDays(TODAY,-n)));
+  });
+  document.addEventListener('submit', function(e){
+    if(e.target.id!=='enqForm') return;
+    e.preventDefault();
+    var nm=document.getElementById('eName').value.trim(), ph=document.getElementById('ePhone').value.replace(/\D/g,''), err=document.getElementById('enqErr');
+    if(!nm){ err.textContent='Enter the child’s name.'; return; }
+    if(!/^[6-9]\d{9}$/.test(ph)){ err.textContent='Enter a 10-digit mobile number starting with 6, 7, 8 or 9.'; return; }
+    enquiries.unshift({id:nextE(), name:nm, cls:document.getElementById('eCls').value, by:document.getElementById('eBy').value, phone:ph, ago:0, status:'New', rewarded:false, converted:false});
+    state.enqOpen=false; render(); toast(nm+' added to enquiries');
+  });
+  document.addEventListener('submit', function(e){ if(e.target.id!=='authForm') return; e.preventDefault(); doAuth(e.target); });
+  document.addEventListener('keydown', function(e){ if(e.key==='Enter' && e.target.id==='lockPin'){ e.preventDefault(); tryUnlock(); } });
+  document.addEventListener('visibilitychange', function(){
+    if(document.hidden){ hiddenAt=Date.now(); return; }
+    if(getPin() && hiddenAt && Date.now()-hiddenAt>30000){ pinRequired=true; forgotOpen=false; lastMode=''; refreshLockUI(); }
+    checkLock();
+  });
+  setInterval(function(){ if(!document.hidden) checkLock(); }, 300000);
+  document.addEventListener('keydown', function(e){ if(e.key==='Escape' && state.sheet) closeSheet(); });
+
+  // ---- Boot ----
+  document.getElementById('centre').textContent = CENTRE;
+  document.getElementById('today').textContent = TODAY.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
+  var h = (location.hash||'').replace('#','');
+  if(TABS.some(function(t){return t.id===h;})) state.tab = h;
+  load();
+  initLocks();
+  if(GCLIENT) gLoadLib().catch(function(){});
+})();
+</script>
+
+</body></html>
